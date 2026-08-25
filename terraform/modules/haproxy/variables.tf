@@ -4,6 +4,11 @@ variable "name" {
   default     = "cloudenv"
 }
 
+variable "data_dir" {
+  description = "Local directory to write rendered config/TLS material into"
+  type        = string
+}
+
 variable "network_name" {
   description = "Docker network to attach to"
   type        = string
@@ -34,6 +39,11 @@ variable "clusters" {
       https = number
     })
   }))
+
+  validation {
+    condition     = length(var.clusters) == length(distinct([for c in var.clusters : c.name]))
+    error_message = "Each entry in clusters must have a unique \"name\" — it's used as the HAProxy backend identifier."
+  }
 }
 
 variable "registries" {
@@ -45,6 +55,11 @@ variable "registries" {
     port         = number
   }))
   default = []
+
+  validation {
+    condition     = length(var.registries) == length(distinct([for r in var.registries : r.name]))
+    error_message = "Each entry in registries must have a unique \"name\" — it's used as the HAProxy backend identifier."
+  }
 }
 
 variable "openbao" {

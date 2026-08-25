@@ -12,7 +12,7 @@ terraform {
 }
 
 locals {
-  config_dir     = "/tmp/${var.name}-registry"
+  config_dir     = "${var.data_dir}/${var.name}-registry"
   container_name = coalesce(var.container_name, "${var.name}-registry")
 }
 

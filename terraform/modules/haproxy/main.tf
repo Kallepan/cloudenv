@@ -20,18 +20,36 @@ resource "local_file" "cfg" {
     kcp           = var.kcp
     tls_cert_path = local.has_tls ? "/usr/local/etc/haproxy/certs/wildcard.pem" : null
   })
-  filename = "/tmp/haproxy-${var.name}/haproxy.cfg"
+  filename = "${var.data_dir}/haproxy-${var.name}/haproxy.cfg"
+
+  # clusters/registries/openbao/keycloak/kcp all contribute a "<name>_http"-style
+  # backend to the rendered config — a collision between any two silently
+  # produces an invalid haproxy.cfg that only fails at container start.
+  lifecycle {
+    precondition {
+      condition     = length(local.all_backend_names) == length(distinct(local.all_backend_names))
+      error_message = "Duplicate HAProxy backend identifier among clusters/registries/openbao/keycloak/kcp: ${join(", ", local.all_backend_names)}. Each must be unique."
+    }
+  }
 }
 
 locals {
   has_tls = var.tls_cert != "" && var.tls_key != ""
+
+  all_backend_names = concat(
+    [for c in var.clusters : c.name],
+    [for r in var.registries : r.name],
+    var.openbao != null ? ["openbao"] : [],
+    var.keycloak != null ? ["keycloak"] : [],
+    var.kcp != null ? ["kcp"] : [],
+  )
 }
 
 # HAProxy expects cert + key concatenated in a single PEM file for "bind ... ssl crt"
 resource "local_file" "tls_bundle" {
   count           = local.has_tls ? 1 : 0
   content         = "${var.tls_cert}\n${var.tls_key}"
-  filename        = "/tmp/haproxy-${var.name}/certs/wildcard.pem"
+  filename        = "${var.data_dir}/haproxy-${var.name}/certs/wildcard.pem"
   file_permission = "0600"
 }
 
@@ -57,7 +75,7 @@ resource "docker_container" "haproxy" {
   }
 
   volumes {
-    host_path      = "/tmp/haproxy-${var.name}"
+    host_path      = "${var.data_dir}/haproxy-${var.name}"
     container_path = "/usr/local/etc/haproxy"
     read_only      = true
   }

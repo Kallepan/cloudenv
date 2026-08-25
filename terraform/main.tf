@@ -2,36 +2,38 @@ locals {
   kubeconfig_path     = abspath("${path.module}/../.configs/kubeconfig")
   talosconfig_path    = abspath("${path.module}/../.configs/talosconfig")
   kcp_kubeconfig_path = abspath("${path.module}/../.configs/kcp-kubeconfig")
+  data_dir            = abspath("${path.module}/../.data")
 
-  # Fixed IP scheme within 10.5.0.0/24
-  # .1   = gateway
-  # .2   = haproxy
-  # .3   = dnsmasq
-  # .4   = registry
-  # .5   = openbao
-  # .6   = keycloak
-  # .7   = kcp
-  # .10+ = control planes
-  # .20+ = workers
-  haproxy_ip  = "10.5.0.2"
-  dnsmasq_ip  = "10.5.0.3"
-  registry_ip = "10.5.0.4"
-  openbao_ip  = "10.5.0.5"
-  keycloak_ip = "10.5.0.6"
-  kcp_ip      = "10.5.0.7"
+  network_prefix = "10.5.0"
+  gateway_ip     = "${local.network_prefix}.1"
 
-  # Pre-compute node IPs to break Terraform dependency cycle:
-  # haproxy config can be generated before the cluster is applied
+  # IP assigned by list position (starting at .2) — add a service here to
+  # allocate it the next free address instead of hand-picking an octet
+  service_names = ["haproxy", "dnsmasq", "registry", "openbao", "keycloak", "kcp"]
+  service_ips = {
+    for idx, svc in local.service_names :
+    svc => "${local.network_prefix}.${idx + 2}"
+  }
+
+  haproxy_ip  = local.service_ips["haproxy"]
+  dnsmasq_ip  = local.service_ips["dnsmasq"]
+  registry_ip = local.service_ips["registry"]
+  openbao_ip  = local.service_ips["openbao"]
+  keycloak_ip = local.service_ips["keycloak"]
+  kcp_ip      = local.service_ips["kcp"]
+
+  # Node IPs start at .10/.20, well clear of the service range above, so
+  # growing service_names doesn't risk colliding with cluster nodes
   cp_nodes = [
     for i in range(var.control_plane_count) : {
       node_name    = "${var.cluster_name}-controlplane-${i}"
-      ipv4_address = "10.5.0.${10 + i}"
+      ipv4_address = "${local.network_prefix}.${10 + i}"
     }
   ]
   worker_nodes = [
     for i in range(var.worker_count) : {
       node_name    = "${var.cluster_name}-worker-${i}"
-      ipv4_address = "10.5.0.${20 + i}"
+      ipv4_address = "${local.network_prefix}.${20 + i}"
     }
   ]
 }
@@ -39,13 +41,14 @@ locals {
 module "network" {
   source  = "./modules/network"
   name    = "${var.cluster_name}-net"
-  subnet  = "10.5.0.0/24"
-  gateway = "10.5.0.1"
+  subnet  = "${local.network_prefix}.0/24"
+  gateway = local.gateway_ip
 }
 
 module "certificates" {
-  source = "./modules/certificates"
-  domain = var.domain
+  source   = "./modules/certificates"
+  domain   = var.domain
+  data_dir = local.data_dir
 }
 
 module "haproxy" {
@@ -53,6 +56,7 @@ module "haproxy" {
   name         = var.cluster_name
   network_name = module.network.name
   ip_address   = local.haproxy_ip
+  data_dir     = local.data_dir
   tls_cert     = module.certificates.cert
   tls_key      = module.certificates.key
 
@@ -100,6 +104,7 @@ module "dnsmasq" {
   name         = var.cluster_name
   network_name = module.network.name
   ip_address   = local.dnsmasq_ip
+  data_dir     = local.data_dir
   domain       = var.domain
   resolve_to   = local.haproxy_ip
 }
@@ -110,6 +115,7 @@ module "registry" {
   container_name = "${var.cluster_name}-registry"
   network_name   = module.network.name
   ip_address     = local.registry_ip
+  data_dir       = local.data_dir
   domain         = "registry.${var.domain}"
   tls_cert       = module.certificates.cert
   tls_key        = module.certificates.key
@@ -137,6 +143,7 @@ module "kcp" {
   name            = "${var.cluster_name}-kcp"
   network_name    = module.network.name
   ip_address      = local.kcp_ip
+  data_dir        = local.data_dir
   hostname        = "kcp.${var.domain}"
   tls_cert        = module.certificates.cert
   tls_key         = module.certificates.key
@@ -165,6 +172,7 @@ module "flux" {
 
   kubeconfig_path = local.kubeconfig_path
   kubeconfig_raw  = module.cluster.kubeconfig_raw
+  data_dir        = local.data_dir
   git_url         = var.flux_git_url
   git_branch      = var.flux_git_branch
   git_path        = var.flux_git_path

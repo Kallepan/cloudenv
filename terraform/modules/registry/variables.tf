@@ -10,6 +10,11 @@ variable "container_name" {
   default     = null
 }
 
+variable "data_dir" {
+  description = "Local directory to write rendered config/TLS material into"
+  type        = string
+}
+
 variable "network_name" {
   description = "Docker network to attach to"
   type        = string

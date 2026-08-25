@@ -12,7 +12,7 @@ terraform {
 }
 
 locals {
-  output_dir = abspath("${path.root}/../.certs")
+  output_dir = "${var.data_dir}/certs"
 }
 
 data "external" "certs" {
