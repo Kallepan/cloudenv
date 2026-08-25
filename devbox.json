@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.18.0/.schema/devbox.schema.json",
+  "packages": [
+    "kubectl@latest",
+    "kubernetes-helm@latest",
+    "kustomize@latest",
+    "k9s@latest",
+    "terraform@latest",
+    "fluxcd@latest",
+    "talosctl@latest",
+    "just@latest",
+    "mkcert@latest"
+  ],
+  "shell": {
+    "init_hook": [
+      "export KUBECONFIG=$PWD/.configs/kubeconfig",
+      "export TALOSCONFIG=$PWD/.configs/talosconfig",
+      "echo 'Kubernetes env ready. Run: just --list'"
+    ]
+  }
+}
