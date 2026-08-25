@@ -47,27 +47,42 @@ variable "registries" {
   default = []
 }
 
+variable "openbao" {
+  type = object({
+    domain       = string
+    port         = number
+    ipv4_address = string
+  })
+  default = null
+}
+
+variable "keycloak" {
+  type = object({
+    domain       = string
+    port         = number
+    ipv4_address = string
+  })
+  default = null
+}
+
 variable "kcp" {
   type = object({
     domain       = string
-    ipv4_address = string
-    port         = number
-  })
-  default = null
-}
-
-variable "dex" {
-  type = object({
     port         = number
     ipv4_address = string
   })
   default = null
 }
 
-variable "openbao" {
-  type = object({
-    port         = number
-    ipv4_address = string
-  })
-  default = null
+variable "tls_cert" {
+  description = "PEM certificate used to terminate TLS for dedicated frontends (e.g. openbao)"
+  type        = string
+  default     = ""
+}
+
+variable "tls_key" {
+  description = "PEM private key matching tls_cert"
+  type        = string
+  default     = ""
+  sensitive   = true
 }

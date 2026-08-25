@@ -1,7 +1,13 @@
 variable "name" {
-  description = "Registry identifier (used in container/volume names)"
+  description = "Registry identifier used as the HAProxy backend name (keep short/logical, not the container name)"
   type        = string
   default     = "registry"
+}
+
+variable "container_name" {
+  description = "Docker container name; defaults to \"<name>-registry\" if unset"
+  type        = string
+  default     = null
 }
 
 variable "network_name" {

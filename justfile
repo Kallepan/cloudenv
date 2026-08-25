@@ -1,8 +1,10 @@
 kubeconfig := justfile_directory() + "/.configs/kubeconfig"
 talosconfig := justfile_directory() + "/.configs/talosconfig"
+kcp_kubeconfig := justfile_directory() + "/.configs/kcp-kubeconfig"
 
 export KUBECONFIG := kubeconfig
 export TALOSCONFIG := talosconfig
+export KUBECONFIG_KCP := kcp_kubeconfig
 
 # List available recipes
 default:

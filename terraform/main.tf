@@ -1,17 +1,24 @@
 locals {
-  kubeconfig_path  = abspath("${path.module}/../.configs/kubeconfig")
-  talosconfig_path = abspath("${path.module}/../.configs/talosconfig")
+  kubeconfig_path     = abspath("${path.module}/../.configs/kubeconfig")
+  talosconfig_path    = abspath("${path.module}/../.configs/talosconfig")
+  kcp_kubeconfig_path = abspath("${path.module}/../.configs/kcp-kubeconfig")
 
   # Fixed IP scheme within 10.5.0.0/24
   # .1   = gateway
   # .2   = haproxy
   # .3   = dnsmasq
   # .4   = registry
+  # .5   = openbao
+  # .6   = keycloak
+  # .7   = kcp
   # .10+ = control planes
   # .20+ = workers
   haproxy_ip  = "10.5.0.2"
   dnsmasq_ip  = "10.5.0.3"
   registry_ip = "10.5.0.4"
+  openbao_ip  = "10.5.0.5"
+  keycloak_ip = "10.5.0.6"
+  kcp_ip      = "10.5.0.7"
 
   # Pre-compute node IPs to break Terraform dependency cycle:
   # haproxy config can be generated before the cluster is applied
@@ -46,6 +53,8 @@ module "haproxy" {
   name         = var.cluster_name
   network_name = module.network.name
   ip_address   = local.haproxy_ip
+  tls_cert     = module.certificates.cert
+  tls_key      = module.certificates.key
 
   clusters = [{
     name          = var.cluster_name
@@ -66,10 +75,29 @@ module "haproxy" {
     ipv4_address = module.registry.ip_address
     port         = module.registry.port
   }]
+
+  openbao = {
+    domain       = "openbao.${var.domain}"
+    ipv4_address = module.openbao.ip_address
+    port         = module.openbao.port
+  }
+
+  keycloak = {
+    domain       = "keycloak.${var.domain}"
+    ipv4_address = module.keycloak.ip_address
+    port         = module.keycloak.port
+  }
+
+  kcp = {
+    domain       = "kcp.${var.domain}"
+    ipv4_address = module.kcp.ip_address
+    port         = module.kcp.port
+  }
 }
 
 module "dnsmasq" {
   source       = "./modules/dnsmasq"
+  name         = var.cluster_name
   network_name = module.network.name
   ip_address   = local.dnsmasq_ip
   domain       = var.domain
@@ -77,13 +105,43 @@ module "dnsmasq" {
 }
 
 module "registry" {
-  source       = "./modules/registry"
-  name         = "registry"
+  source         = "./modules/registry"
+  name           = "registry"
+  container_name = "${var.cluster_name}-registry"
+  network_name   = module.network.name
+  ip_address     = local.registry_ip
+  domain         = "registry.${var.domain}"
+  tls_cert       = module.certificates.cert
+  tls_key        = module.certificates.key
+}
+
+module "openbao" {
+  source       = "./modules/openbao"
+  name         = "${var.cluster_name}-openbao"
   network_name = module.network.name
-  ip_address   = local.registry_ip
-  domain       = "registry.${var.domain}"
-  tls_cert     = module.certificates.cert
-  tls_key      = module.certificates.key
+  ip_address   = local.openbao_ip
+  root_token   = var.openbao_root_token
+}
+
+module "keycloak" {
+  source         = "./modules/keycloak"
+  name           = "${var.cluster_name}-keycloak"
+  network_name   = module.network.name
+  ip_address     = local.keycloak_ip
+  hostname       = "keycloak.${var.domain}"
+  admin_password = var.keycloak_admin_password
+}
+
+module "kcp" {
+  source          = "./modules/kcp"
+  name            = "${var.cluster_name}-kcp"
+  network_name    = module.network.name
+  ip_address      = local.kcp_ip
+  hostname        = "kcp.${var.domain}"
+  tls_cert        = module.certificates.cert
+  tls_key         = module.certificates.key
+  root_ca         = module.certificates.root_ca
+  kubeconfig_path = local.kcp_kubeconfig_path
 }
 
 module "cluster" {

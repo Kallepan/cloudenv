@@ -12,7 +12,8 @@ terraform {
 }
 
 locals {
-  config_dir = "/tmp/${var.name}-registry"
+  config_dir     = "/tmp/${var.name}-registry"
+  container_name = coalesce(var.container_name, "${var.name}-registry")
 }
 
 resource "docker_volume" "data" {
@@ -63,7 +64,7 @@ resource "docker_container" "registry" {
     docker_image.zot,
   ]
 
-  name    = "${var.name}-registry"
+  name    = local.container_name
   image   = docker_image.zot.image_id
   restart = "unless-stopped"
   command = ["serve", "/etc/zot/config.json"]

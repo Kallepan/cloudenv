@@ -1,3 +1,9 @@
+variable "name" {
+  description = "Identifier used for the container name (e.g. \"<name>-dnsmasq\")"
+  type        = string
+  default     = "dnsmasq"
+}
+
 variable "network_name" {
   description = "Docker network to attach to"
   type        = string

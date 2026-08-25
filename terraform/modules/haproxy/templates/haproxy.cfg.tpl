@@ -54,34 +54,28 @@ frontend https-tls-passthrough
 	use_backend ${registry.name}_https if { req_ssl_sni -i ${registry.domain} }
 %{ endfor ~}
 
+%{ if openbao != null ~}
+	# OpenBao (TLS terminated locally on 127.0.0.1, then proxied to the HTTP backend)
+	use_backend openbao_terminate if { req_ssl_sni -i ${openbao.domain} }
+%{ endif ~}
+
+%{ if keycloak != null ~}
+	# Keycloak (TLS terminated locally on 127.0.0.1, then proxied to the HTTP backend)
+	use_backend keycloak_terminate if { req_ssl_sni -i ${keycloak.domain} }
+%{ endif ~}
+
+%{ if kcp != null ~}
+	# kcp (TLS passthrough — kcp terminates its own TLS)
+	use_backend kcp_k8s_api if { req_ssl_sni -i ${kcp.domain} }
+%{ endif ~}
+
 %{ for cluster in clusters ~}
 	# Backend Config for ${cluster.name}
 	use_backend ${cluster.name}_https if { req_ssl_sni -m end .${cluster.base_domain} }
 %{ endfor ~}
 
-%{ if kcp != null ~}
-	# KCP API backend (TLS passthrough on 443)
-	use_backend kcp_k8s_api if { req_ssl_sni -i ${kcp.domain} }
-%{ endif ~}
-
 	default_backend no-match
 
-%{ if openbao != null ~}
-frontend openbao
-	bind *:${openbao.port}
-	mode http
-	option httplog
-	default_backend openbao_http
-
-%{ endif ~}
-%{ if dex != null ~}
-frontend dex
-	bind *:${dex.port}
-	mode tcp
-	option tcplog
-	default_backend dex_tcp
-
-%{ endif ~}
 frontend https-k8s
 	bind *:6443
 	mode tcp
@@ -97,7 +91,7 @@ frontend https-k8s
 %{ endfor ~}
 
 %{ if kcp != null ~}
-	# KCP API backend
+	# kcp API backend (TLS passthrough — kcp terminates its own TLS)
 	use_backend kcp_k8s_api if { req_ssl_sni -i ${kcp.domain} }
 %{ endif ~}
 
@@ -137,7 +131,7 @@ backend ${cluster.name}_https
 %{ endfor ~}
 
 %{ if kcp != null ~}
-# Kubernetes API backend - kcp
+# kcp API backend (TLS passthrough — kcp terminates its own TLS)
 backend kcp_k8s_api
 	mode tcp
 	server kcp ${kcp.ipv4_address}:${kcp.port} check
@@ -148,13 +142,23 @@ backend kcp_k8s_api
 backend openbao_http
 	mode http
 	server openbao ${openbao.ipv4_address}:${openbao.port} check
+
+# Loopback TCP hop into the local TLS-termination frontend below
+backend openbao_terminate
+	mode tcp
+	server openbao_local 127.0.0.1:8443 send-proxy-v2
 %{ endif ~}
 
-%{ if dex != null ~}
-# Dex OIDC TCP passthrough backend
-backend dex_tcp
+%{ if keycloak != null ~}
+# Keycloak HTTP backend
+backend keycloak_http
+	mode http
+	server keycloak ${keycloak.ipv4_address}:${keycloak.port} check
+
+# Loopback TCP hop into the local TLS-termination frontend below
+backend keycloak_terminate
 	mode tcp
-	server dex ${dex.ipv4_address}:${dex.port} check
+	server keycloak_local 127.0.0.1:8444 send-proxy-v2
 %{ endif ~}
 
 %{ for registry in registries ~}
@@ -173,3 +177,22 @@ backend ${registry.name}_https
 backend health_check
     mode http
     http-request return status 200 content-type application/json string '{"status":"OK"}'
+
+%{ if openbao != null && tls_cert_path != null ~}
+# TLS termination for OpenBao, reached via the openbao_terminate backend above
+frontend openbao_https
+	bind 127.0.0.1:8443 ssl crt ${tls_cert_path} accept-proxy
+	mode http
+	option httplog
+	default_backend openbao_http
+%{ endif ~}
+
+%{ if keycloak != null && tls_cert_path != null ~}
+# TLS termination for Keycloak, reached via the keycloak_terminate backend above
+frontend keycloak_https
+	bind 127.0.0.1:8444 ssl crt ${tls_cert_path} accept-proxy
+	mode http
+	option httplog
+	http-request set-header X-Forwarded-Proto https
+	default_backend keycloak_http
+%{ endif ~}
