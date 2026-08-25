@@ -5,7 +5,7 @@
     "kubernetes-helm@latest",
     "kustomize@latest",
     "k9s@latest",
-    "terraform@latest",
+    "opentofu@latest",
     "fluxcd@latest",
     "talosctl@latest",
     "just@latest",

@@ -13,15 +13,15 @@ up:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{justfile_directory()}}/terraform"
-    terraform init -input=false
-    terraform apply -var-file="local-talos.tfvars" -auto-approve
+    tofu init -input=false
+    tofu apply -var-file="local-talos.tfvars" -auto-approve
 
 # Destroy the cluster
 down:
     #!/usr/bin/env bash
     set -euo pipefail
     cd "{{justfile_directory()}}/terraform"
-    terraform destroy -var-file="local-talos.tfvars" -auto-approve
+    tofu destroy -var-file="local-talos.tfvars" -auto-approve
 
 # Destroy then recreate
 reset:

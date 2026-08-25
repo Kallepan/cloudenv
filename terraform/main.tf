@@ -110,5 +110,9 @@ module "flux" {
   git_url         = var.flux_git_url
   git_branch      = var.flux_git_branch
   git_path        = var.flux_git_path
+
+  registry_domain = module.registry.domain
+  manifests_path  = abspath("${path.module}/../manifests")
+  root_ca         = module.certificates.root_ca
 }
 

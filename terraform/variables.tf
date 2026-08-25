@@ -37,7 +37,7 @@ variable "kubernetes_version" {
 variable "enable_flux" {
   description = "Install Flux into the cluster after creation"
   type        = bool
-  default     = false
+  default     = true
 }
 
 variable "flux_git_url" {

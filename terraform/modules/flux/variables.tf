@@ -25,3 +25,39 @@ variable "git_path" {
   type        = string
   default     = "manifests/base"
 }
+
+variable "registry_domain" {
+  description = "FQDN of the local OCI registry used for git-less sync (ignored when git_url is set)"
+  type        = string
+  default     = ""
+}
+
+variable "manifests_path" {
+  description = "Absolute path to the local manifests directory to push as an OCI artifact"
+  type        = string
+  default     = ""
+}
+
+variable "oci_repo_name" {
+  description = "Name of the OCI repository the manifests are pushed to"
+  type        = string
+  default     = "cluster-manifests"
+}
+
+variable "oci_tag" {
+  description = "Tag used for the pushed manifests artifact"
+  type        = string
+  default     = "latest"
+}
+
+variable "app_path" {
+  description = "Path (relative to manifests_path) that the Flux Kustomization builds and applies"
+  type        = string
+  default     = "apps/podinfo"
+}
+
+variable "root_ca" {
+  description = "PEM root CA the registry's TLS cert was issued from — trusted by source-controller via certSecretRef"
+  type        = string
+  default     = ""
+}
