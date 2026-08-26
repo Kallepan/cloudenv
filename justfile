@@ -28,7 +28,7 @@ down:
 # Destroy everything
 reset:
     just down
-    rm -rf "{{justfile_directory()}}/.configs"
+    rm -rf "{{justfile_directory()}}/.configs"/*
     rm -rf "{{justfile_directory()}}/.data"
     rm -rf "{{justfile_directory()}}/terraform/.terraform.tfstate"
     rm -rf "{{justfile_directory()}}/terraform/.terraform.tfstate.backup"
