@@ -30,9 +30,9 @@ done
 
 docker cp "${KCP_CONTAINER}:${KCP_SRC}" "${tmp}"
 
-KUBECONFIG="${tmp}" kubectl config set-cluster root --server="https://${KCP_HOSTNAME}:${KCP_PORT}/clusters/root" >/dev/null || true
-KUBECONFIG="${tmp}" kubectl config set-cluster base --server="https://${KCP_HOSTNAME}:${KCP_PORT}" >/dev/null || true
-KUBECONFIG="${tmp}" kubectl config set-cluster system:admin --server="https://${KCP_HOSTNAME}:${KCP_PORT}/clusters/system:admin" >/dev/null || true
+KUBECONFIG="${tmp}" kubectl config set-cluster root --server="https://${KCP_HOSTNAME}:${KCP_PORT}/clusters/root" >/dev/null
+KUBECONFIG="${tmp}" kubectl config set-cluster base --server="https://${KCP_HOSTNAME}:${KCP_PORT}" >/dev/null
+KUBECONFIG="${tmp}" kubectl config set-cluster system:admin --server="https://${KCP_HOSTNAME}:${KCP_PORT}/clusters/system:admin" >/dev/null
 
 mv "${tmp}" "${KCP_DST}"
 chmod 0600 "${KCP_DST}"
