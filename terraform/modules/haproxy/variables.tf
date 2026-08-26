@@ -89,6 +89,16 @@ variable "kcp" {
   default = null
 }
 
+variable "seaweedfs" {
+  description = "SeaweedFS master web UI backend — TLS terminated locally, like openbao/keycloak"
+  type = object({
+    domain       = string
+    port         = number
+    ipv4_address = string
+  })
+  default = null
+}
+
 variable "tls_cert" {
   description = "PEM certificate used to terminate TLS for dedicated frontends (e.g. openbao)"
   type        = string

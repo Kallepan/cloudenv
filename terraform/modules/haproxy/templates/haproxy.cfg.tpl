@@ -64,6 +64,11 @@ frontend https-tls-passthrough
 	use_backend keycloak_terminate if { req_ssl_sni -i ${keycloak.domain} }
 %{ endif ~}
 
+%{ if seaweedfs != null ~}
+	# SeaweedFS master UI (TLS terminated locally, then proxied to the HTTP backend)
+	use_backend seaweedfs_terminate if { req_ssl_sni -i ${seaweedfs.domain} }
+%{ endif ~}
+
 %{ if kcp != null ~}
 	# kcp (TLS passthrough — kcp terminates its own TLS)
 	use_backend kcp_k8s_api if { req_ssl_sni -i ${kcp.domain} }
@@ -161,6 +166,18 @@ backend keycloak_terminate
 	server keycloak_local 127.0.0.1:8444 send-proxy-v2
 %{ endif ~}
 
+%{ if seaweedfs != null ~}
+# SeaweedFS master UI HTTP backend
+backend seaweedfs_http
+	mode http
+	server seaweedfs ${seaweedfs.ipv4_address}:${seaweedfs.port} check
+
+# Loopback TCP hop into the local TLS-termination frontend below
+backend seaweedfs_terminate
+	mode tcp
+	server seaweedfs_local 127.0.0.1:8445 send-proxy-v2
+%{ endif ~}
+
 %{ for registry in registries ~}
 # Registry backend - ${registry.name}
 backend ${registry.name}_http
@@ -195,4 +212,13 @@ frontend keycloak_https
 	option httplog
 	http-request set-header X-Forwarded-Proto https
 	default_backend keycloak_http
+%{ endif ~}
+
+%{ if seaweedfs != null && tls_cert_path != null ~}
+# TLS termination for SeaweedFS master UI, reached via the seaweedfs_terminate backend above
+frontend seaweedfs_https
+	bind 127.0.0.1:8445 ssl crt ${tls_cert_path} accept-proxy
+	mode http
+	option httplog
+	default_backend seaweedfs_http
 %{ endif ~}

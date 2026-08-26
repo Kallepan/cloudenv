@@ -31,3 +31,13 @@ output "kcp_addr" {
   description = "kcp address, exposed via HAProxy TLS passthrough on 6443"
   value       = "https://kcp.${var.domain}:6443"
 }
+
+output "seaweedfs_ui_addr" {
+  description = "SeaweedFS master web UI, exposed via HAProxy TLS termination"
+  value       = "https://s3.${var.domain}"
+}
+
+output "seaweedfs_s3_endpoint" {
+  description = "SeaweedFS S3 API — reach directly by container IP (not proxied through HAProxy)"
+  value       = "http://${module.seaweedfs.ip_address}:${module.seaweedfs.s3_port}"
+}

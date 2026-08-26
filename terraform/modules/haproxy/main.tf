@@ -18,21 +18,23 @@ resource "local_file" "cfg" {
     openbao       = var.openbao
     keycloak      = var.keycloak
     kcp           = var.kcp
+    seaweedfs     = var.seaweedfs
     tls_cert_path = local.has_tls ? "/usr/local/etc/haproxy/certs/wildcard.pem" : null
   })
   filename = "${var.data_dir}/haproxy-${var.name}/haproxy.cfg"
 
-  # clusters/registries/openbao/keycloak/kcp all contribute a "<name>_http"-style
-  # backend to the rendered config — a collision between any two silently
-  # produces an invalid haproxy.cfg that only fails at container start.
+  # clusters/registries/openbao/keycloak/kcp/seaweedfs all contribute a
+  # "<name>_http"-style backend to the rendered config — a collision between
+  # any two silently produces an invalid haproxy.cfg that only fails at
+  # container start.
   lifecycle {
     precondition {
       condition     = length(local.all_backend_names) == length(distinct(local.all_backend_names))
-      error_message = "Duplicate HAProxy backend identifier among clusters/registries/openbao/keycloak/kcp: ${join(", ", local.all_backend_names)}. Each must be unique."
+      error_message = "Duplicate HAProxy backend identifier among clusters/registries/openbao/keycloak/kcp/seaweedfs: ${join(", ", local.all_backend_names)}. Each must be unique."
     }
     precondition {
-      condition     = local.has_tls || (var.openbao == null && var.keycloak == null)
-      error_message = "openbao/keycloak require HAProxy TLS termination; set tls_cert and tls_key (or unset openbao/keycloak)."
+      condition     = local.has_tls || (var.openbao == null && var.keycloak == null && var.seaweedfs == null)
+      error_message = "openbao/keycloak/seaweedfs require HAProxy TLS termination; set tls_cert and tls_key (or unset them)."
     }
   }
 }
@@ -46,6 +48,7 @@ locals {
     var.openbao != null ? ["openbao"] : [],
     var.keycloak != null ? ["keycloak"] : [],
     var.kcp != null ? ["kcp"] : [],
+    var.seaweedfs != null ? ["seaweedfs"] : [],
   )
 }
 

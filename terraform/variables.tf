@@ -71,3 +71,16 @@ variable "keycloak_admin_password" {
   default     = "admin"
   sensitive   = true
 }
+
+variable "seaweedfs_s3_access_key" {
+  description = "Static S3 access key for the local SeaweedFS server"
+  type        = string
+  default     = "seaweedfs"
+}
+
+variable "seaweedfs_s3_secret_key" {
+  description = "Static S3 secret key for the local SeaweedFS server"
+  type        = string
+  default     = "seaweedfs-secret"
+  sensitive   = true
+}

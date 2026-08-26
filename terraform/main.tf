@@ -9,18 +9,19 @@ locals {
 
   # IP assigned by list position (starting at .2) — add a service here to
   # allocate it the next free address instead of hand-picking an octet
-  service_names = ["haproxy", "dnsmasq", "registry", "openbao", "keycloak", "kcp"]
+  service_names = ["haproxy", "dnsmasq", "registry", "openbao", "keycloak", "kcp", "seaweedfs"]
   service_ips = {
     for idx, svc in local.service_names :
     svc => "${local.network_prefix}.${idx + 2}"
   }
 
-  haproxy_ip  = local.service_ips["haproxy"]
-  dnsmasq_ip  = local.service_ips["dnsmasq"]
-  registry_ip = local.service_ips["registry"]
-  openbao_ip  = local.service_ips["openbao"]
-  keycloak_ip = local.service_ips["keycloak"]
-  kcp_ip      = local.service_ips["kcp"]
+  haproxy_ip   = local.service_ips["haproxy"]
+  dnsmasq_ip   = local.service_ips["dnsmasq"]
+  registry_ip  = local.service_ips["registry"]
+  openbao_ip   = local.service_ips["openbao"]
+  keycloak_ip  = local.service_ips["keycloak"]
+  kcp_ip       = local.service_ips["kcp"]
+  seaweedfs_ip = local.service_ips["seaweedfs"]
 
   # Node IPs start at .10/.20, well clear of the service range above, so
   # growing service_names doesn't risk colliding with cluster nodes
@@ -97,6 +98,12 @@ module "haproxy" {
     ipv4_address = module.kcp.ip_address
     port         = module.kcp.port
   }
+
+  seaweedfs = {
+    domain       = "s3.${var.domain}"
+    ipv4_address = module.seaweedfs.ip_address
+    port         = module.seaweedfs.master_port
+  }
 }
 
 module "dnsmasq" {
@@ -149,6 +156,17 @@ module "kcp" {
   tls_key         = module.certificates.key
   root_ca         = module.certificates.root_ca
   kubeconfig_path = local.kcp_kubeconfig_path
+}
+
+module "seaweedfs" {
+  source        = "./modules/seaweedfs"
+  name          = "${var.cluster_name}-seaweedfs"
+  network_name  = module.network.name
+  ip_address    = local.seaweedfs_ip
+  data_dir      = local.data_dir
+  hostname      = "s3.${var.domain}"
+  s3_access_key = var.seaweedfs_s3_access_key
+  s3_secret_key = var.seaweedfs_s3_secret_key
 }
 
 module "cluster" {
