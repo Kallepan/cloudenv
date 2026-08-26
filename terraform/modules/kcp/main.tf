@@ -100,6 +100,7 @@ resource "terraform_data" "kubeconfig" {
   # the container id (the only "real" input) hasn't changed
   triggers_replace = [
     docker_container.kcp.id,
+    var.kubeconfig_path,
     sha1(file("${path.module}/scripts/extract-kubeconfig.sh")),
   ]
 
