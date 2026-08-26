@@ -35,4 +35,4 @@ KUBECONFIG="${tmp}" kubectl config set-cluster base --server="https://${KCP_HOST
 KUBECONFIG="${tmp}" kubectl config set-cluster system:admin --server="https://${KCP_HOSTNAME}:${KCP_PORT}/clusters/system:admin" >/dev/null || true
 
 mv "${tmp}" "${KCP_DST}"
-chmod 0644 "${KCP_DST}"
+chmod 0600 "${KCP_DST}"
