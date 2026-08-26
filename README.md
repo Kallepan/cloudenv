@@ -15,6 +15,7 @@ flowchart TB
         OpenBao["cloudenv-openbao<br/>10.5.0.5"]
         Keycloak["cloudenv-keycloak<br/>10.5.0.6"]
         KCP["cloudenv-kcp<br/>10.5.0.7"]
+        SeaweedFS["cloudenv-seaweedfs<br/>10.5.0.8"]
         CP["cloudenv-controlplane-0<br/>10.5.0.10"]
         W0["cloudenv-worker-0<br/>10.5.0.20"]
         W1["cloudenv-worker-1<br/>10.5.0.21"]
@@ -25,6 +26,7 @@ flowchart TB
     HAProxy -->|SNI / host routing| Registry
     HAProxy -->|TLS-terminated| OpenBao
     HAProxy -->|TLS-terminated| Keycloak
+    HAProxy -->|TLS-terminated| SeaweedFS
     HAProxy -->|TLS passthrough| KCP
     HAProxy -->|TLS passthrough| CP
     CP --- W0
@@ -73,9 +75,11 @@ just reset             # down + wipe .configs/, .data/, and local tofu state
 | OpenBao (Vault-compatible) | `https://openbao.home.lab` | dev-mode, root token from `openbao_root_token` (default `root`) |
 | Keycloak | `https://keycloak.home.lab` | dev-mode, admin login from `keycloak_admin_password` (default `admin`/`admin`) |
 | kcp | `https://kcp.home.lab:6443` | TLS passthrough — kcp terminates its own TLS |
+| SeaweedFS master UI | `https://s3.home.lab` | S3-compatible object storage admin UI |
+| SeaweedFS S3 API | `http://<seaweedfs-ip>:8333` | reach directly by container IP (not proxied through HAProxy); credentials from `seaweedfs_s3_access_key`/`seaweedfs_s3_secret_key` (default `seaweedfs`/`seaweedfs-secret`) |
 | HAProxy stats | `http://<host>:8404` | published directly on the host |
 
-> ⚠️ **OpenBao, Keycloak, and kcp all run in their respective dev/in-memory modes.** Data does not survive `just reset` (and in OpenBao/Keycloak's case, not even a container restart). This environment is for testing, not for anything you need to keep.
+> ⚠️ **OpenBao, Keycloak, kcp, and SeaweedFS all run in dev/ephemeral-storage modes.** Data does not survive `just reset` (and in OpenBao/Keycloak's case, not even a container restart). This environment is for testing, not for anything you need to keep.
 
 ## Configuration
 
@@ -113,6 +117,7 @@ terraform/
     openbao/       Vault-compatible secrets engine (dev mode)
     keycloak/      identity provider (dev mode)
     kcp/           kcp control plane
+    seaweedfs/     S3-compatible object storage (SeaweedFS)
     flux/          Flux install + git-less OCI sync
 manifests/
   apps/podinfo/    example Flux-managed app
