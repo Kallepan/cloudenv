@@ -30,6 +30,10 @@ resource "local_file" "cfg" {
       condition     = length(local.all_backend_names) == length(distinct(local.all_backend_names))
       error_message = "Duplicate HAProxy backend identifier among clusters/registries/openbao/keycloak/kcp: ${join(", ", local.all_backend_names)}. Each must be unique."
     }
+    precondition {
+      condition     = local.has_tls || (var.openbao == null && var.keycloak == null)
+      error_message = "openbao/keycloak require HAProxy TLS termination; set tls_cert and tls_key (or unset openbao/keycloak)."
+    }
   }
 }
 
