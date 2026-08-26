@@ -7,9 +7,16 @@ terraform {
   }
 }
 
+# Checking the remote digest (rather than trusting the locally cached tag)
+# means a new image gets pulled on the next apply automatically
+data "docker_registry_image" "keycloak" {
+  name = "${var.image}:${var.tag}"
+}
+
 resource "docker_image" "keycloak" {
-  name         = "${var.image}:${var.tag}"
-  keep_locally = true
+  name          = data.docker_registry_image.keycloak.name
+  pull_triggers = [data.docker_registry_image.keycloak.sha256_digest]
+  keep_locally  = true
 }
 
 # Dev-mode server: in-memory H2 storage, fixed admin credentials — local testing only

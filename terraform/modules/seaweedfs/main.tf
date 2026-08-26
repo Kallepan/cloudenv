@@ -35,9 +35,16 @@ resource "docker_volume" "data" {
   name = "${var.name}-data"
 }
 
+# Checking the remote digest (rather than trusting the locally cached tag)
+# means a new image gets pulled on the next apply automatically
+data "docker_registry_image" "seaweedfs" {
+  name = "${var.image}:${var.tag}"
+}
+
 resource "docker_image" "seaweedfs" {
-  name         = "${var.image}:${var.tag}"
-  keep_locally = true
+  name          = data.docker_registry_image.seaweedfs.name
+  pull_triggers = [data.docker_registry_image.seaweedfs.sha256_digest]
+  keep_locally  = true
 }
 
 # Single "server" process runs master (web UI), volume, filer, and S3 API together

@@ -29,9 +29,16 @@ resource "local_file" "tls_key" {
   file_permission = "0600"
 }
 
+# Checking the remote digest (rather than trusting the locally cached tag)
+# means a new image gets pulled on the next apply automatically
+data "docker_registry_image" "kcp" {
+  name = "${var.image}:${var.tag}"
+}
+
 resource "docker_image" "kcp" {
-  name         = "${var.image}:${var.tag}"
-  keep_locally = true
+  name          = data.docker_registry_image.kcp.name
+  pull_triggers = [data.docker_registry_image.kcp.sha256_digest]
+  keep_locally  = true
 }
 
 # kcp terminates its own TLS — HAProxy passes it through by SNI rather than

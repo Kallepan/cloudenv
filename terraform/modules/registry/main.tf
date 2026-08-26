@@ -51,9 +51,16 @@ resource "local_file" "sync_creds" {
   file_permission = "0600"
 }
 
+# Checking the remote digest (rather than trusting the locally cached tag)
+# means a new zot release gets pulled on the next apply automatically
+data "docker_registry_image" "zot" {
+  name = "ghcr.io/project-zot/zot:${var.zot_version}"
+}
+
 resource "docker_image" "zot" {
-  name         = "ghcr.io/project-zot/zot:${var.zot_version}"
-  keep_locally = true
+  name          = data.docker_registry_image.zot.name
+  pull_triggers = [data.docker_registry_image.zot.sha256_digest]
+  keep_locally  = true
 }
 
 resource "docker_container" "registry" {

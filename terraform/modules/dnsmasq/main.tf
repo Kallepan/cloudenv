@@ -21,9 +21,16 @@ resource "local_file" "conf" {
   filename = "${var.data_dir}/dnsmasq-${var.domain}/dnsmasq.conf"
 }
 
+# Checking the remote digest (rather than trusting the locally cached "latest"
+# tag) means a new image gets pulled on the next apply automatically
+data "docker_registry_image" "dnsmasq" {
+  name = "andyshinn/dnsmasq:latest"
+}
+
 resource "docker_image" "dnsmasq" {
-  name         = "andyshinn/dnsmasq:latest"
-  keep_locally = true
+  name          = data.docker_registry_image.dnsmasq.name
+  pull_triggers = [data.docker_registry_image.dnsmasq.sha256_digest]
+  keep_locally  = true
 }
 
 resource "docker_container" "dnsmasq" {

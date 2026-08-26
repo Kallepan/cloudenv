@@ -60,9 +60,16 @@ resource "local_file" "tls_bundle" {
   file_permission = "0600"
 }
 
+# Checking the remote digest (rather than trusting the locally cached "lts"
+# tag) means a new haproxy release gets pulled on the next apply automatically
+data "docker_registry_image" "haproxy" {
+  name = "haproxy:lts"
+}
+
 resource "docker_image" "haproxy" {
-  name         = "haproxy:lts"
-  keep_locally = true
+  name          = data.docker_registry_image.haproxy.name
+  pull_triggers = [data.docker_registry_image.haproxy.sha256_digest]
+  keep_locally  = true
 }
 
 resource "docker_container" "haproxy" {
