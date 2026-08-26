@@ -29,7 +29,7 @@ resource "docker_image" "dnsmasq" {
 resource "docker_container" "dnsmasq" {
   depends_on = [local_file.conf, docker_image.dnsmasq]
 
-  name    = "${var.name}-dnsmasq"
+  name    = var.name == "dnsmasq" ? "dnsmasq" : "${var.name}-dnsmasq"
   image   = docker_image.dnsmasq.image_id
   restart = "unless-stopped"
 
