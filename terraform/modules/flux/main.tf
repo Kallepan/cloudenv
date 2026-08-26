@@ -1,11 +1,4 @@
 locals {
-  command = var.git_url != "" ? join(" \\\n    ", [
-    "flux bootstrap git",
-    "--url=${var.git_url}",
-    "--branch=${var.git_branch}",
-    "--path=${var.git_path}",
-  ]) : "flux install --namespace=flux-system"
-
   # Recompute whenever any manifest file's content changes
   manifest_files = var.git_url == "" ? fileset(var.manifests_path, "**") : []
   manifests_hash = var.git_url == "" ? sha1(join("", [
@@ -46,27 +39,31 @@ resource "terraform_data" "install" {
     var.git_url,
     var.git_branch,
     var.git_path,
+    sha1(file("${path.module}/scripts/install.sh")),
   ]
 
   provisioner "local-exec" {
+    command = "bash \"${path.module}/scripts/install.sh\""
     environment = {
-      KUBECONFIG = var.kubeconfig_path
+      KUBECONFIG      = var.kubeconfig_path
+      FLUX_GIT_URL    = var.git_url
+      FLUX_GIT_BRANCH = var.git_branch
+      FLUX_GIT_PATH   = var.git_path
     }
-    command = local.command
   }
 }
 
 resource "local_file" "sync_manifests" {
   count           = var.git_url == "" ? 1 : 0
   content         = "${local.ocirepo_manifest}---\n${local.kustomization_manifest}"
-  filename        = "/tmp/flux-${var.oci_repo_name}-sync.yaml"
+  filename        = "${var.data_dir}/flux-${var.oci_repo_name}-sync.yaml"
   file_permission = "0644"
 }
 
 resource "local_file" "ca_cert" {
   count           = var.git_url == "" && var.root_ca != "" ? 1 : 0
   content         = var.root_ca
-  filename        = "/tmp/flux-${var.oci_repo_name}-ca.pem"
+  filename        = "${var.data_dir}/flux-${var.oci_repo_name}-ca.pem"
   file_permission = "0644"
 }
 
@@ -82,26 +79,23 @@ resource "terraform_data" "sync" {
     var.oci_tag,
     var.app_path,
     var.root_ca,
+    sha1(file("${path.module}/scripts/sync.sh")),
   ]
 
   provisioner "local-exec" {
-    environment = {
-      KUBECONFIG = var.kubeconfig_path
-    }
-    command = <<-EOT
-      set -euo pipefail
-      flux push artifact "oci://${var.registry_domain}/${var.oci_repo_name}:${var.oci_tag}" \
-        --path="${var.manifests_path}" \
-        --source="local://terraform" \
-        --revision="terraform@sha1:${local.manifests_hash}"
-
-      %{ if var.root_ca != "" ~}
-      kubectl -n flux-system create secret generic ${var.oci_repo_name}-ca \
-        --from-file=ca.crt=${local_file.ca_cert[0].filename} \
-        --dry-run=client -o yaml | kubectl apply -f -
-      %{ endif ~}
-      kubectl apply -f ${local_file.sync_manifests[0].filename}
-    EOT
+    command = "bash \"${path.module}/scripts/sync.sh\""
+    environment = merge(
+      {
+        KUBECONFIG           = var.kubeconfig_path
+        FLUX_MANIFESTS_PATH  = var.manifests_path
+        FLUX_REGISTRY_DOMAIN = var.registry_domain
+        FLUX_OCI_REPO_NAME   = var.oci_repo_name
+        FLUX_OCI_TAG         = var.oci_tag
+        FLUX_REVISION        = local.manifests_hash
+        FLUX_SYNC_MANIFEST   = local_file.sync_manifests[0].filename
+      },
+      var.root_ca != "" ? { FLUX_CA_FILE = local_file.ca_cert[0].filename } : {}
+    )
   }
 }
 

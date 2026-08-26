@@ -1,3 +1,14 @@
+variable "name" {
+  description = "Identifier used for the container name (e.g. \"<name>-dnsmasq\")"
+  type        = string
+  default     = "dnsmasq"
+}
+
+variable "data_dir" {
+  description = "Local directory to write rendered config into"
+  type        = string
+}
+
 variable "network_name" {
   description = "Docker network to attach to"
   type        = string

@@ -3,6 +3,11 @@ variable "kubeconfig_path" {
   type        = string
 }
 
+variable "data_dir" {
+  description = "Local directory to write rendered sync manifests/CA material into"
+  type        = string
+}
+
 variable "kubeconfig_raw" {
   description = "Raw kubeconfig content — creates an implicit dependency on the cluster being ready"
   type        = string

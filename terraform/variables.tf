@@ -57,3 +57,30 @@ variable "flux_git_path" {
   type        = string
   default     = "manifests/base"
 }
+
+variable "openbao_root_token" {
+  description = "Fixed root token for the local OpenBao dev-mode server"
+  type        = string
+  default     = "root"
+  sensitive   = true
+}
+
+variable "keycloak_admin_password" {
+  description = "Bootstrap admin password for the local Keycloak dev-mode server"
+  type        = string
+  default     = "admin"
+  sensitive   = true
+}
+
+variable "seaweedfs_s3_access_key" {
+  description = "Static S3 access key for the local SeaweedFS server"
+  type        = string
+  default     = "seaweedfs"
+}
+
+variable "seaweedfs_s3_secret_key" {
+  description = "Static S3 secret key for the local SeaweedFS server"
+  type        = string
+  default     = "seaweedfs-secret"
+  sensitive   = true
+}

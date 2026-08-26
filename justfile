@@ -1,8 +1,10 @@
 kubeconfig := justfile_directory() + "/.configs/kubeconfig"
 talosconfig := justfile_directory() + "/.configs/talosconfig"
+kcp_kubeconfig := justfile_directory() + "/.configs/kcp-kubeconfig"
 
 export KUBECONFIG := kubeconfig
 export TALOSCONFIG := talosconfig
+export KUBECONFIG_KCP := kcp_kubeconfig
 
 # List available recipes
 default:
@@ -23,10 +25,13 @@ down:
     cd "{{justfile_directory()}}/terraform"
     tofu destroy -var-file="local-talos.tfvars" -auto-approve
 
-# Destroy then recreate
+# Destroy everything
 reset:
     just down
-    just up
+    rm -rf "{{justfile_directory()}}/.configs"/*
+    rm -rf "{{justfile_directory()}}/.data"
+    rm -rf "{{justfile_directory()}}/terraform/.terraform.tfstate"
+    rm -rf "{{justfile_directory()}}/terraform/.terraform.tfstate.backup"
 
 # Show cluster info
 status:
