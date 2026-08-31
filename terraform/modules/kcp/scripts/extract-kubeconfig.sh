@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Extract the kcp admin kubeconfig from the container and rewrite cluster endpoints.
 set -euo pipefail
 
 : "${KCP_CONTAINER:?KCP_CONTAINER env var required}"
