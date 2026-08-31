@@ -15,7 +15,7 @@ mkdir -p "$(dirname "${KCP_DST}")"
 # Wait for kcp to generate the admin kubeconfig inside the container.
 max_attempts=60
 attempt=1
-until docker exec "${KCP_CONTAINER}" test -f "${KCP_SRC}" >/dev/null 2>&1; do
+until docker exec "${KCP_CONTAINER}" sh -lc "test -f \"${KCP_SRC}\"" >/dev/null 2>&1; do
   if [ "${attempt}" -ge "${max_attempts}" ]; then
     echo "Timed out waiting for ${KCP_SRC} in container ${KCP_CONTAINER}" >&2
     docker logs "${KCP_CONTAINER}" 2>&1 | tail -n 80 >&2 || true
