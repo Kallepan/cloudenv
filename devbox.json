@@ -9,7 +9,8 @@
     "fluxcd@latest",
     "talosctl@latest",
     "just@latest",
-    "mkcert@latest"
+    "mkcert@latest",
+    "git@latest"
   ],
   "shell": {
     "init_hook": [
