@@ -10,6 +10,7 @@ on:
     paths:
       - "terraform/**"
       - ".github/workflows/tofu-validate.yml"
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
 
 jobs:
