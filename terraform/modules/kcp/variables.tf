@@ -61,7 +61,7 @@ variable "image" {
 variable "tag" {
   description = "kcp image tag"
   type        = string
-  default     = "latest"
+  default     = "v0.32.3"
 }
 
 variable "oidc" {
