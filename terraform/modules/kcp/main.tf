@@ -115,7 +115,7 @@ resource "terraform_data" "kubeconfig" {
     command = "bash \"${path.module}/scripts/extract-kubeconfig.sh\""
     environment = {
       KCP_CONTAINER = var.name
-      KCP_SRC       = "/data/.kcp/admin.kubeconfig"
+      KCP_SRC       = "/.kcp/admin.kubeconfig"
       KCP_DST       = var.kubeconfig_path
       KCP_HOSTNAME  = var.hostname
       KCP_PORT      = tostring(var.port)
