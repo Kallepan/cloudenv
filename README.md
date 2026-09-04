@@ -50,7 +50,7 @@ Every service is reached at `<name>.home.lab`. Point that domain at the local `d
 just setup-dns
 ```
 
-This writes `/etc/resolver/home.lab` so macOS forwards `*.home.lab` queries to `dnsmasq` (`10.250.0.3`), which in turn resolves everything to HAProxy.
+This writes `/etc/resolver/home.lab` so macOS forwards `*.home.lab` queries to `dnsmasq` (by default `10.250.0.3`, i.e. `<network_prefix>.3`), which in turn resolves everything to HAProxy.
 
 ## Quick start
 
