@@ -11,9 +11,14 @@ variable "domain" {
 }
 
 variable "network_prefix" {
-  description = "IPv4 /24 prefix for the Docker network; choose one that does not overlap VPN routes"
+  description = "IPv4 /24 prefix for the Docker network (e.g. \"10.250.0\"); choose one that does not overlap VPN routes"
   type        = string
   default     = "10.250.0"
+
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){2}[0-9]{1,3}$", var.network_prefix))
+    error_message = "network_prefix must be an IPv4 prefix in the form \"A.B.C\" (no trailing dot, no CIDR suffix)."
+  }
 }
 
 variable "worker_count" {
