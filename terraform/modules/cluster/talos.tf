@@ -38,14 +38,12 @@ locals {
   common_patches = compact([local.root_ca_patch])
 }
 
-# Any change to the cluster inputs starts from a clean Talos cluster.
+# Changes to core cluster parameters start from a clean Talos cluster.
 resource "terraform_data" "cluster_parameters" {
   triggers_replace = [
     var.cluster_name,
     var.network_name,
     var.network_prefix,
-    var.kubeconfig_path,
-    var.talosconfig_path,
     var.domain,
     var.worker_count,
     var.control_plane_count,
