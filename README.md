@@ -91,9 +91,16 @@ Cluster shape and credentials are set in [terraform/local.tfvars](terraform/loca
 
 | File | Env var | Purpose |
 | --- | --- | --- |
-| `.configs/kubeconfig` | `KUBECONFIG` | the Talos cluster |
+| `.configs/kubeconfig` | `KUBECONFIG` | user access to the Kubernetes cluster through Keycloak OIDC |
+| `.configs/automation-kubeconfig` | Terraform only | certificate-based access for Flux and other local automation |
 | `.configs/talosconfig` | `TALOSCONFIG` | `talosctl` access to the nodes |
 | `.configs/kcp-kubeconfig` | `KUBECONFIG_KCP` | the kcp control plane |
+
+The main Kubernetes kubeconfig uses Keycloak OIDC login through the bundled
+`kubectl oidc-login` plugin. Run `just status` or any `kubectl` command and
+complete the browser login when prompted. The default development credentials
+are controlled by `oidc_username` and `oidc_user_password` in
+`terraform/local.tfvars`.
 
 ## GitOps with Flux
 

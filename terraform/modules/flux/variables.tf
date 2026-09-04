@@ -14,6 +14,11 @@ variable "kubeconfig_raw" {
   sensitive   = true
 }
 
+variable "cluster_generation" {
+  description = "Cluster generation used to rerun Flux after cluster recreation"
+  type        = string
+}
+
 variable "git_url" {
   description = "Git URL for Flux bootstrap — empty runs 'flux install' only"
   type        = string

@@ -45,6 +45,49 @@ variable "kubernetes_version" {
   default     = "1.32.0"
 }
 
+variable "oidc_realm" {
+  description = "Keycloak realm used for Kubernetes OIDC authentication"
+  type        = string
+  default     = "cloudenv"
+}
+
+variable "oidc_client_id" {
+  description = "Keycloak OIDC client ID for Kubernetes"
+  type        = string
+  default     = "kubernetes"
+}
+
+variable "oidc_username" {
+  description = "Initial Keycloak OIDC username"
+  type        = string
+  default     = "admin"
+}
+
+variable "oidc_user_password" {
+  description = "Initial Keycloak OIDC user password"
+  type        = string
+  sensitive   = true
+  default     = "admin"
+}
+
+variable "oidc_first_name" {
+  description = "Initial Keycloak OIDC user's first name"
+  type        = string
+  default     = "Admin"
+}
+
+variable "oidc_last_name" {
+  description = "Initial Keycloak OIDC user's last name"
+  type        = string
+  default     = "Admin"
+}
+
+variable "oidc_user_email" {
+  description = "Initial Keycloak OIDC user's email address"
+  type        = string
+  default     = "admin@home.lab"
+}
+
 variable "haproxy_image_tag" {
   description = "HAProxy Docker image tag"
   type        = string

@@ -47,6 +47,11 @@ resource "terraform_data" "cluster_parameters" {
     var.domain,
     var.worker_count,
     var.control_plane_count,
+    var.oidc_issuer_url,
+    var.oidc_client_id,
+    var.oidc_username,
+    var.oidc_host,
+    var.oidc_host_ip,
     var.talos_version,
     var.kubernetes_version,
     var.root_ca,
@@ -100,6 +105,11 @@ resource "docker_container" "node" {
 
   env = ["PLATFORM=container"]
 
+  host {
+    host = var.oidc_host
+    ip   = var.oidc_host_ip
+  }
+
   networks_advanced {
     name         = var.network_name
     ipv4_address = each.value.ip
@@ -143,6 +153,7 @@ resource "docker_container" "node" {
     type   = "volume"
   }
 
+
   mounts {
     target = "/etc/kubernetes"
     type   = "volume"
@@ -172,9 +183,30 @@ data "talos_machine_configuration" "controlplane" {
   config_patches = concat(
     [
       jsonencode({
+        machine = var.root_ca != "" ? {
+          files = [{
+            content     = var.root_ca
+            permissions = 420
+            path        = "/var/etc/kubernetes/oidc-ca.crt"
+            op          = "create"
+          }]
+        } : {}
         cluster = {
           # Single control plane must also schedule workloads
           allowSchedulingOnControlPlanes = var.control_plane_count == 1
+          apiServer = {
+            extraArgs = {
+              "oidc-issuer-url"     = var.oidc_issuer_url
+              "oidc-client-id"      = var.oidc_client_id
+              "oidc-username-claim" = var.oidc_username_claim
+              "oidc-ca-file"        = "/etc/kubernetes/oidc-ca.crt"
+            }
+            extraVolumes = var.root_ca != "" ? [{
+              hostPath  = "/var/etc/kubernetes/oidc-ca.crt"
+              mountPath = "/etc/kubernetes/oidc-ca.crt"
+              readonly  = true
+            }] : []
+          }
         }
       })
     ],
@@ -281,7 +313,7 @@ resource "talos_cluster_kubeconfig" "this" {
 }
 
 resource "local_file" "kubeconfig" {
-  content         = talos_cluster_kubeconfig.this.kubeconfig_raw
+  content         = yamlencode(local.kubeconfig_with_oidc)
   filename        = var.kubeconfig_path
   file_permission = "0600"
 
@@ -290,9 +322,84 @@ resource "local_file" "kubeconfig" {
   }
 }
 
+resource "local_file" "automation_kubeconfig" {
+  content         = talos_cluster_kubeconfig.this.kubeconfig_raw
+  filename        = var.automation_kubeconfig_path
+  file_permission = "0600"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
+}
+
+resource "local_file" "oidc_rbac" {
+  content = yamlencode({
+    apiVersion = "rbac.authorization.k8s.io/v1"
+    kind       = "ClusterRoleBinding"
+    metadata   = { name = "oidc-${var.oidc_username}-view" }
+    roleRef = {
+      apiGroup = "rbac.authorization.k8s.io"
+      kind     = "ClusterRole"
+      name     = "view"
+    }
+    subjects = [{
+      apiGroup = "rbac.authorization.k8s.io"
+      kind     = "User"
+      name     = "${var.oidc_issuer_url}#${var.oidc_username}"
+    }]
+  })
+  filename        = "${var.automation_kubeconfig_path}.oidc-rbac.yaml"
+  file_permission = "0600"
+
+  depends_on = [local_file.automation_kubeconfig]
+}
+
+resource "terraform_data" "oidc_rbac" {
+  triggers_replace = [
+    local_file.oidc_rbac.content,
+    local_file.automation_kubeconfig.content,
+  ]
+
+  provisioner "local-exec" {
+    command = "kubectl --kubeconfig='${var.automation_kubeconfig_path}' apply --filename='${local_file.oidc_rbac.filename}'"
+  }
+}
+
 # ── talosconfig ───────────────────────────────────────────────────────────────
 
 locals {
+  kubeconfig_with_oidc = merge(yamldecode(talos_cluster_kubeconfig.this.kubeconfig_raw), {
+    users = concat(
+      [
+        for user in yamldecode(talos_cluster_kubeconfig.this.kubeconfig_raw).users : user
+        if user.name != "oidc"
+      ],
+      [{
+        name = "oidc"
+        user = {
+          exec = {
+            apiVersion         = "client.authentication.k8s.io/v1beta1"
+            command            = "kubectl"
+            installHint        = "Install kubelogin-oidc with Devbox."
+            provideClusterInfo = true
+            args = [
+              "oidc-login",
+              "get-token",
+              "--oidc-issuer-url=${var.oidc_issuer_url}",
+              "--oidc-client-id=${var.oidc_client_id}",
+              "--oidc-pkce-method=S256",
+            ]
+          }
+        }
+      }]
+    )
+    contexts = [
+      for context in yamldecode(talos_cluster_kubeconfig.this.kubeconfig_raw).contexts : merge(context, {
+        context = merge(context.context, { user = "oidc" })
+      })
+    ]
+  })
+
   talosconfig_raw = yamlencode({
     context = var.cluster_name
     contexts = {
