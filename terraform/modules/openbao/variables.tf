@@ -36,5 +36,4 @@ variable "image" {
 variable "tag" {
   description = "OpenBao image tag"
   type        = string
-  default     = "latest"
 }

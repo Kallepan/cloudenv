@@ -24,7 +24,7 @@ resource "local_file" "conf" {
 # Checking the remote digest (rather than trusting the locally cached "latest"
 # tag) means a new image gets pulled on the next apply automatically
 data "docker_registry_image" "dnsmasq" {
-  name = "andyshinn/dnsmasq:latest"
+  name = "andyshinn/dnsmasq:${var.tag}"
 }
 
 resource "docker_image" "dnsmasq" {

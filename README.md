@@ -83,7 +83,7 @@ just reset             # down + wipe .configs/, .data/, and local tofu state
 
 ## Configuration
 
-Cluster shape and credentials are set in [terraform/local-talos.tfvars](terraform/local-talos.tfvars) — see [terraform/variables.tf](terraform/variables.tf) for the full list (worker/control-plane counts, Talos/Kubernetes versions, domain, Flux git settings, service credentials). Change the file and re-run `just up`.
+Cluster shape and credentials are set in [terraform/local.tfvars](terraform/local.tfvars) — see [terraform/variables.tf](terraform/variables.tf) for the full list (worker/control-plane counts, Talos/Kubernetes versions, domain, Flux git settings, service credentials). Change the file and re-run `just up`.
 
 ### Kubeconfigs
 
@@ -106,7 +106,7 @@ Flux is installed by default (`enable_flux = true`). With no `flux_git_url` conf
 ```
 terraform/
   main.tf, variables.tf, outputs.tf   # root module — wires everything together
-  local-talos.tfvars                  # your cluster configuration
+  local.tfvars                        # your cluster configuration
   modules/
     network/       docker network
     certificates/  mkcert-issued wildcard cert + root CA

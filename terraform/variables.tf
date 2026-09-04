@@ -40,6 +40,48 @@ variable "kubernetes_version" {
   default     = "1.32.0"
 }
 
+variable "haproxy_image_tag" {
+  description = "HAProxy Docker image tag"
+  type        = string
+  default     = "lts"
+}
+
+variable "dnsmasq_image_tag" {
+  description = "dnsmasq Docker image tag"
+  type        = string
+  default     = "latest"
+}
+
+variable "zot_image_tag" {
+  description = "zot Docker image tag"
+  type        = string
+  default     = "latest"
+}
+
+variable "openbao_image_tag" {
+  description = "OpenBao Docker image tag"
+  type        = string
+  default     = "latest"
+}
+
+variable "keycloak_image_tag" {
+  description = "Keycloak Docker image tag"
+  type        = string
+  default     = "latest"
+}
+
+variable "kcp_image_tag" {
+  description = "kcp Docker image tag"
+  type        = string
+  default     = "v0.32.3"
+}
+
+variable "seaweedfs_image_tag" {
+  description = "SeaweedFS Docker image tag"
+  type        = string
+  default     = "latest"
+}
+
 variable "enable_flux" {
   description = "Install Flux into the cluster after creation"
   type        = bool

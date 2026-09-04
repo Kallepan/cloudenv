@@ -55,6 +55,7 @@ module "certificates" {
 module "haproxy" {
   source       = "./modules/haproxy"
   name         = var.cluster_name
+  tag          = var.haproxy_image_tag
   network_name = module.network.name
   ip_address   = local.haproxy_ip
   data_dir     = local.data_dir
@@ -109,6 +110,7 @@ module "haproxy" {
 module "dnsmasq" {
   source       = "./modules/dnsmasq"
   name         = var.cluster_name
+  tag          = var.dnsmasq_image_tag
   network_name = module.network.name
   ip_address   = local.dnsmasq_ip
   data_dir     = local.data_dir
@@ -120,6 +122,7 @@ module "registry" {
   source         = "./modules/registry"
   name           = "registry"
   container_name = "${var.cluster_name}-registry"
+  zot_version    = var.zot_image_tag
   network_name   = module.network.name
   ip_address     = local.registry_ip
   data_dir       = local.data_dir
@@ -131,6 +134,7 @@ module "registry" {
 module "openbao" {
   source       = "./modules/openbao"
   name         = "${var.cluster_name}-openbao"
+  tag          = var.openbao_image_tag
   network_name = module.network.name
   ip_address   = local.openbao_ip
   root_token   = var.openbao_root_token
@@ -139,6 +143,7 @@ module "openbao" {
 module "keycloak" {
   source         = "./modules/keycloak"
   name           = "${var.cluster_name}-keycloak"
+  tag            = var.keycloak_image_tag
   network_name   = module.network.name
   ip_address     = local.keycloak_ip
   hostname       = "keycloak.${var.domain}"
@@ -148,6 +153,7 @@ module "keycloak" {
 module "kcp" {
   source          = "./modules/kcp"
   name            = "${var.cluster_name}-kcp"
+  tag             = var.kcp_image_tag
   network_name    = module.network.name
   ip_address      = local.kcp_ip
   data_dir        = local.data_dir
@@ -161,6 +167,7 @@ module "kcp" {
 module "seaweedfs" {
   source        = "./modules/seaweedfs"
   name          = "${var.cluster_name}-seaweedfs"
+  tag           = var.seaweedfs_image_tag
   network_name  = module.network.name
   ip_address    = local.seaweedfs_ip
   data_dir      = local.data_dir
