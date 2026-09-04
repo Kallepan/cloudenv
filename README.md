@@ -22,7 +22,7 @@ flowchart TB
     end
 
     Host -->|DNS| DNS
-    Host -->|direct IP, via docker-mac-net-connect| net
+    Host -->|direct IP via Docker bridge| net
     HAProxy -->|SNI / host routing| Registry
     HAProxy -->|TLS-terminated| OpenBao
     HAProxy -->|TLS-terminated| Keycloak
@@ -40,7 +40,7 @@ Talos nodes run *as Docker containers* (not VMs) with real `containerd`/kubelet 
 - **Docker Desktop** — running, with enough resources for a 3-node cluster
 - **[Devbox](https://www.jetify.com/devbox)** — provisions every CLI tool used below (`kubectl`, `helm`, `kustomize`, `k9s`, `opentofu`, `flux`, `talosctl`, `just`, `mkcert`) via `devbox.json`; no manual installs needed
 - **[direnv](https://direnv.net/)** (optional but recommended) — auto-loads the devbox shell and exports `KUBECONFIG`/`TALOSCONFIG`/`KUBECONFIG_KCP` on `cd`; see [.envrc](.envrc)
-- **macOS**: [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect) — routes the host directly to the Docker bridge network so you can reach container IPs (`10.250.0.x`) without publishing every port individually
+- **macOS only**: [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect) — routes the host directly to the Docker bridge network so you can reach container IPs (`10.250.0.x`) without publishing every port individually. Native Linux Docker Engine provides this bridge routing automatically.
 
 ### DNS setup (required once)
 
@@ -128,7 +128,7 @@ manifests/
 
 ## Troubleshooting
 
-- **`just up` fails with connection/TLS errors to `*.home.lab`** — run `just setup-dns`, and confirm `docker-mac-net-connect` is running (`sudo brew services info docker-mac-net-connect`).
+- **`just up` fails with connection/TLS errors to `*.home.lab` on macOS** — run `just setup-dns`, and confirm `docker-mac-net-connect` is running (`sudo brew services info docker-mac-net-connect`). Native Linux Docker Engine does not require this service.
 - **A service's HAProxy backend fails to start / config parse error** — HAProxy validates that every backend name (cluster names, registry names, `openbao`/`keycloak`/`kcp`) is unique; `tofu plan` will fail fast with a clear error if two collide.
 - **Terraform provisioner didn't pick up a script change** — `terraform_data` resources only rerun when their `triggers_replace` changes; each one hashes its script file, so editing e.g. `modules/kcp/scripts/extract-kubeconfig.sh` triggers a rerun automatically on the next `just up`.
 
