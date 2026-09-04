@@ -47,5 +47,4 @@ variable "image" {
 variable "tag" {
   description = "Keycloak image tag"
   type        = string
-  default     = "latest"
 }

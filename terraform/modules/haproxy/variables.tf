@@ -4,6 +4,11 @@ variable "name" {
   default     = "cloudenv"
 }
 
+variable "tag" {
+  description = "HAProxy image tag"
+  type        = string
+}
+
 variable "data_dir" {
   description = "Local directory to write rendered config/TLS material into"
   type        = string

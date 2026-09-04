@@ -6,11 +6,11 @@ variable "name" {
 variable "subnet" {
   description = "Network CIDR"
   type        = string
-  default     = "10.5.0.0/24"
+  default     = "10.250.0.0/24"
 }
 
 variable "gateway" {
   description = "Network gateway"
   type        = string
-  default     = "10.5.0.1"
+  default     = "10.250.0.1"
 }

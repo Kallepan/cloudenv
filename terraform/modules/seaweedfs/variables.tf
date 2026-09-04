@@ -70,5 +70,4 @@ variable "image" {
 variable "tag" {
   description = "SeaweedFS image tag"
   type        = string
-  default     = "latest"
 }

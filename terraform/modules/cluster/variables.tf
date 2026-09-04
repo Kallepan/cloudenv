@@ -8,6 +8,15 @@ variable "network_name" {
   type        = string
 }
 
+variable "network_prefix" {
+  description = "IPv4 /24 prefix for the Docker network (e.g. \"10.250.0\")"
+  type        = string
+
+  validation {
+    condition     = can(regex("^([0-9]{1,3}\\.){2}[0-9]{1,3}$", var.network_prefix))
+    error_message = "network_prefix must be an IPv4 prefix in the form \"A.B.C\" (no trailing dot, no CIDR suffix)."
+  }
+}
 variable "kubeconfig_path" {
   description = "Absolute path to write the kubeconfig file"
   type        = string

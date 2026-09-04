@@ -4,6 +4,11 @@ variable "name" {
   default     = "dnsmasq"
 }
 
+variable "tag" {
+  description = "dnsmasq image tag"
+  type        = string
+}
+
 variable "data_dir" {
   description = "Local directory to write rendered config into"
   type        = string

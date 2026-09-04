@@ -5,7 +5,7 @@ locals {
       "${var.cluster_name}-controlplane-${i}" => {
         role  = "controlplane"
         index = i
-        ip    = "10.5.0.${10 + i}"
+        ip    = "${var.network_prefix}.${10 + i}"
       }
     },
     {
@@ -13,7 +13,7 @@ locals {
       "${var.cluster_name}-worker-${i}" => {
         role  = "worker"
         index = i
-        ip    = "10.5.0.${20 + i}"
+        ip    = "${var.network_prefix}.${20 + i}"
       }
     }
   )
@@ -23,7 +23,7 @@ locals {
   cp_ips       = [for k, v in local.cp_nodes : v.ip]
   worker_ips   = [for k, v in local.worker_nodes : v.ip]
 
-  bootstrap_ip     = local.cp_nodes["${var.cluster_name}-controlplane-0"].ip
+  bootstrap_ip = local.cp_nodes["${var.cluster_name}-controlplane-0"].ip
   # Direct IP so Talos nodes can reach the API server without DNS during bootstrap
   cluster_endpoint = "https://${local.bootstrap_ip}:6443"
   talos_image      = "ghcr.io/siderolabs/talos:${var.talos_version}"
@@ -38,10 +38,29 @@ locals {
   common_patches = compact([local.root_ca_patch])
 }
 
+# Changes to core cluster parameters start from a clean Talos cluster.
+resource "terraform_data" "cluster_parameters" {
+  triggers_replace = [
+    var.cluster_name,
+    var.network_name,
+    var.network_prefix,
+    var.domain,
+    var.worker_count,
+    var.control_plane_count,
+    var.talos_version,
+    var.kubernetes_version,
+    var.root_ca,
+  ]
+}
+
 # ── Secrets ───────────────────────────────────────────────────────────────────
 
 resource "talos_machine_secrets" "this" {
   talos_version = var.talos_version
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 }
 
 # ── Docker infrastructure ─────────────────────────────────────────────────────
@@ -49,11 +68,19 @@ resource "talos_machine_secrets" "this" {
 resource "docker_image" "talos" {
   name         = local.talos_image
   keep_locally = true
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 }
 
 resource "docker_volume" "node" {
   for_each = local.all_nodes
   name     = "${each.key}-var"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 }
 
 # Nodes start in maintenance mode — talos provider applies config below
@@ -62,10 +89,14 @@ resource "docker_container" "node" {
   for_each   = local.all_nodes
   depends_on = [docker_image.talos]
 
-  name       = each.key
-  hostname   = each.key
-  image      = docker_image.talos.image_id
-  restart    = "unless-stopped"
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
+
+  name     = each.key
+  hostname = each.key
+  image    = docker_image.talos.image_id
+  restart  = "unless-stopped"
 
   env = ["PLATFORM=container"]
 
@@ -155,6 +186,10 @@ resource "talos_machine_configuration_apply" "controlplane" {
   for_each   = local.cp_nodes
   depends_on = [docker_container.node]
 
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
+
   client_configuration        = talos_machine_secrets.this.client_configuration
   machine_configuration_input = data.talos_machine_configuration.controlplane.machine_configuration
   endpoint                    = each.value.ip
@@ -166,6 +201,10 @@ resource "talos_machine_configuration_apply" "controlplane" {
 resource "talos_machine_bootstrap" "this" {
   depends_on = [talos_machine_configuration_apply.controlplane]
 
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
+
   client_configuration = talos_machine_secrets.this.client_configuration
   endpoint             = local.bootstrap_ip
   node                 = local.bootstrap_ip
@@ -176,7 +215,8 @@ resource "terraform_data" "bootstrap_gate" {
   input = talos_machine_bootstrap.this.id
 
   lifecycle {
-    ignore_changes = [input]
+    replace_triggered_by = [terraform_data.cluster_parameters]
+    ignore_changes       = [input]
   }
 }
 
@@ -200,6 +240,10 @@ resource "talos_machine_configuration_apply" "worker" {
     docker_container.node,
     terraform_data.bootstrap_gate,
   ]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 
   client_configuration        = talos_machine_secrets.this.client_configuration
   machine_configuration_input = data.talos_machine_configuration.worker.machine_configuration
@@ -228,6 +272,10 @@ data "talos_cluster_health" "this" {
 resource "talos_cluster_kubeconfig" "this" {
   depends_on = [data.talos_cluster_health.this]
 
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
+
   client_configuration = talos_machine_secrets.this.client_configuration
   node                 = local.bootstrap_ip
 }
@@ -236,6 +284,10 @@ resource "local_file" "kubeconfig" {
   content         = talos_cluster_kubeconfig.this.kubeconfig_raw
   filename        = var.kubeconfig_path
   file_permission = "0600"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 }
 
 # ── talosconfig ───────────────────────────────────────────────────────────────
@@ -259,4 +311,8 @@ resource "local_file" "talosconfig" {
   content         = local.talosconfig_raw
   filename        = var.talosconfig_path
   file_permission = "0600"
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.cluster_parameters]
+  }
 }

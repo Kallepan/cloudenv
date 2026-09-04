@@ -8,21 +8,21 @@ CloudEnv spins up a fully local, Docker-based Kubernetes environment for develop
 flowchart TB
     Host["Your Mac<br/>(*.home.lab via dnsmasq)"]
 
-    subgraph net["Docker network: cloudenv-net (10.5.0.0/24)"]
-        HAProxy["cloudenv-haproxy<br/>10.5.0.2<br/>:80 :443 :6443 :8404"]
-        DNS["cloudenv-dnsmasq<br/>10.5.0.3"]
-        Registry["cloudenv-registry (zot)<br/>10.5.0.4"]
-        OpenBao["cloudenv-openbao<br/>10.5.0.5"]
-        Keycloak["cloudenv-keycloak<br/>10.5.0.6"]
-        KCP["cloudenv-kcp<br/>10.5.0.7"]
-        SeaweedFS["cloudenv-seaweedfs<br/>10.5.0.8"]
-        CP["cloudenv-controlplane-0<br/>10.5.0.10"]
-        W0["cloudenv-worker-0<br/>10.5.0.20"]
-        W1["cloudenv-worker-1<br/>10.5.0.21"]
+    subgraph net["Docker network: cloudenv-net (10.250.0.0/24)"]
+      HAProxy["cloudenv-haproxy<br/>10.250.0.2<br/>:80 :443 :6443 :8404"]
+      DNS["cloudenv-dnsmasq<br/>10.250.0.3"]
+      Registry["cloudenv-registry (zot)<br/>10.250.0.4"]
+      OpenBao["cloudenv-openbao<br/>10.250.0.5"]
+      Keycloak["cloudenv-keycloak<br/>10.250.0.6"]
+      KCP["cloudenv-kcp<br/>10.250.0.7"]
+      SeaweedFS["cloudenv-seaweedfs<br/>10.250.0.8"]
+      CP["cloudenv-controlplane-0<br/>10.250.0.10"]
+      W0["cloudenv-worker-0<br/>10.250.0.20"]
+      W1["cloudenv-worker-1<br/>10.250.0.21"]
     end
 
     Host -->|DNS| DNS
-    Host -->|direct IP, via docker-mac-net-connect| net
+    Host -->|direct IP via Docker bridge| net
     HAProxy -->|SNI / host routing| Registry
     HAProxy -->|TLS-terminated| OpenBao
     HAProxy -->|TLS-terminated| Keycloak
@@ -40,7 +40,7 @@ Talos nodes run *as Docker containers* (not VMs) with real `containerd`/kubelet 
 - **Docker Desktop** — running, with enough resources for a 3-node cluster
 - **[Devbox](https://www.jetify.com/devbox)** — provisions every CLI tool used below (`kubectl`, `helm`, `kustomize`, `k9s`, `opentofu`, `flux`, `talosctl`, `just`, `mkcert`) via `devbox.json`; no manual installs needed
 - **[direnv](https://direnv.net/)** (optional but recommended) — auto-loads the devbox shell and exports `KUBECONFIG`/`TALOSCONFIG`/`KUBECONFIG_KCP` on `cd`; see [.envrc](.envrc)
-- **macOS**: [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect) — routes the host directly to the Docker bridge network so you can reach container IPs (`10.5.0.x`) without publishing every port individually
+- **macOS only**: [docker-mac-net-connect](https://github.com/chipmk/docker-mac-net-connect) — routes the host directly to the Docker bridge network so you can reach container IPs (`10.250.0.x`) without publishing every port individually. Native Linux Docker Engine provides this bridge routing automatically.
 
 ### DNS setup (required once)
 
@@ -50,7 +50,7 @@ Every service is reached at `<name>.home.lab`. Point that domain at the local `d
 just setup-dns
 ```
 
-This writes `/etc/resolver/home.lab` so macOS forwards `*.home.lab` queries to `dnsmasq` (`10.5.0.3`), which in turn resolves everything to HAProxy.
+This writes `/etc/resolver/home.lab` so macOS forwards `*.home.lab` queries to `dnsmasq` (by default `10.250.0.3`, i.e. `<network_prefix>.3`), which in turn resolves everything to HAProxy.
 
 ## Quick start
 
@@ -83,7 +83,7 @@ just reset             # down + wipe .configs/, .data/, and local tofu state
 
 ## Configuration
 
-Cluster shape and credentials are set in [terraform/local-talos.tfvars](terraform/local-talos.tfvars) — see [terraform/variables.tf](terraform/variables.tf) for the full list (worker/control-plane counts, Talos/Kubernetes versions, domain, Flux git settings, service credentials). Change the file and re-run `just up`.
+Cluster shape and credentials are set in [terraform/local.tfvars](terraform/local.tfvars) — see [terraform/variables.tf](terraform/variables.tf) for the full list (worker/control-plane counts, Talos/Kubernetes versions, domain, Flux git settings, service credentials). Change the file and re-run `just up`.
 
 ### Kubeconfigs
 
@@ -106,7 +106,7 @@ Flux is installed by default (`enable_flux = true`). With no `flux_git_url` conf
 ```
 terraform/
   main.tf, variables.tf, outputs.tf   # root module — wires everything together
-  local-talos.tfvars                  # your cluster configuration
+  local.tfvars                        # your cluster configuration
   modules/
     network/       docker network
     certificates/  mkcert-issued wildcard cert + root CA
@@ -128,7 +128,7 @@ manifests/
 
 ## Troubleshooting
 
-- **`just up` fails with connection/TLS errors to `*.home.lab`** — run `just setup-dns`, and confirm `docker-mac-net-connect` is running (`sudo brew services info docker-mac-net-connect`).
+- **`just up` fails with connection/TLS errors to `*.home.lab` on macOS** — run `just setup-dns`, and confirm `docker-mac-net-connect` is running (`sudo brew services info docker-mac-net-connect`). Native Linux Docker Engine does not require this service.
 - **A service's HAProxy backend fails to start / config parse error** — HAProxy validates that every backend name (cluster names, registry names, `openbao`/`keycloak`/`kcp`) is unique; `tofu plan` will fail fast with a clear error if two collide.
 - **Terraform provisioner didn't pick up a script change** — `terraform_data` resources only rerun when their `triggers_replace` changes; each one hashes its script file, so editing e.g. `modules/kcp/scripts/extract-kubeconfig.sh` triggers a rerun automatically on the next `just up`.
 
