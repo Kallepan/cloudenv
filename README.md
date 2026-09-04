@@ -69,7 +69,7 @@ just reset             # down + wipe .configs/, .data/, and local tofu state
 ## Services
 
 | Service | Address | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Kubernetes API | `https://kube.cloudenv.home.lab:6443` | also reachable directly at the control-plane IP printed by `just up` |
 | Container registry ([zot](https://zotregistry.dev)) | `https://registry.home.lab` | OCI/Docker v2 API, optional pull-through mirroring |
 | OpenBao (Vault-compatible) | `https://openbao.home.lab` | dev-mode, root token from `openbao_root_token` (default `root`) |
@@ -90,7 +90,7 @@ Cluster shape and credentials are set in [terraform/local.tfvars](terraform/loca
 `just up` writes everything under `.configs/`:
 
 | File | Env var | Purpose |
-|---|---|---|
+| --- | --- | --- |
 | `.configs/kubeconfig` | `KUBECONFIG` | the Talos cluster |
 | `.configs/talosconfig` | `TALOSCONFIG` | `talosctl` access to the nodes |
 | `.configs/kcp-kubeconfig` | `KUBECONFIG_KCP` | the kcp control plane |
@@ -103,7 +103,7 @@ Flux is installed by default (`enable_flux = true`). With no `flux_git_url` conf
 
 ## Repository layout
 
-```
+```code
 terraform/
   main.tf, variables.tf, outputs.tf   # root module — wires everything together
   local.tfvars                        # your cluster configuration
@@ -131,4 +131,3 @@ manifests/
 - **`just up` fails with connection/TLS errors to `*.home.lab` on macOS** — run `just setup-dns`, and confirm `docker-mac-net-connect` is running (`sudo brew services info docker-mac-net-connect`). Native Linux Docker Engine does not require this service.
 - **A service's HAProxy backend fails to start / config parse error** — HAProxy validates that every backend name (cluster names, registry names, `openbao`/`keycloak`/`kcp`) is unique; `tofu plan` will fail fast with a clear error if two collide.
 - **Terraform provisioner didn't pick up a script change** — `terraform_data` resources only rerun when their `triggers_replace` changes; each one hashes its script file, so editing e.g. `modules/kcp/scripts/extract-kubeconfig.sh` triggers a rerun automatically on the next `just up`.
-
