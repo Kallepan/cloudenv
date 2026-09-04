@@ -5,7 +5,7 @@ locals {
       "${var.cluster_name}-controlplane-${i}" => {
         role  = "controlplane"
         index = i
-        ip    = "10.5.0.${10 + i}"
+        ip    = "${var.network_prefix}.${10 + i}"
       }
     },
     {
@@ -13,7 +13,7 @@ locals {
       "${var.cluster_name}-worker-${i}" => {
         role  = "worker"
         index = i
-        ip    = "10.5.0.${20 + i}"
+        ip    = "${var.network_prefix}.${20 + i}"
       }
     }
   )
@@ -23,7 +23,7 @@ locals {
   cp_ips       = [for k, v in local.cp_nodes : v.ip]
   worker_ips   = [for k, v in local.worker_nodes : v.ip]
 
-  bootstrap_ip     = local.cp_nodes["${var.cluster_name}-controlplane-0"].ip
+  bootstrap_ip = local.cp_nodes["${var.cluster_name}-controlplane-0"].ip
   # Direct IP so Talos nodes can reach the API server without DNS during bootstrap
   cluster_endpoint = "https://${local.bootstrap_ip}:6443"
   talos_image      = "ghcr.io/siderolabs/talos:${var.talos_version}"
@@ -62,10 +62,10 @@ resource "docker_container" "node" {
   for_each   = local.all_nodes
   depends_on = [docker_image.talos]
 
-  name       = each.key
-  hostname   = each.key
-  image      = docker_image.talos.image_id
-  restart    = "unless-stopped"
+  name     = each.key
+  hostname = each.key
+  image    = docker_image.talos.image_id
+  restart  = "unless-stopped"
 
   env = ["PLATFORM=container"]
 

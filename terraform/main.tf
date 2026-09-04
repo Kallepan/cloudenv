@@ -4,7 +4,7 @@ locals {
   kcp_kubeconfig_path = abspath("${path.module}/../.configs/kcp-kubeconfig")
   data_dir            = abspath("${path.module}/../.data")
 
-  network_prefix = "10.5.0"
+  network_prefix = var.network_prefix
   gateway_ip     = "${local.network_prefix}.1"
 
   # IP assigned by list position (starting at .2) — add a service here to
@@ -174,6 +174,7 @@ module "cluster" {
 
   cluster_name        = var.cluster_name
   network_name        = module.network.name
+  network_prefix      = local.network_prefix
   worker_count        = var.worker_count
   control_plane_count = var.control_plane_count
   domain              = var.domain

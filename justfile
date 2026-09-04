@@ -65,7 +65,7 @@ flux-bootstrap url branch="main" path="manifests/base":
         --path={{path}}
 
 # Configure macOS DNS resolver so *.home.lab resolves via the dnsmasq container
-setup-dns domain="home.lab" nameserver="10.5.0.3":
+setup-dns domain="home.lab" nameserver="10.250.0.3":
     #!/usr/bin/env bash
     set -euo pipefail
     sudo mkdir -p /etc/resolver

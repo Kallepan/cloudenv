@@ -10,6 +10,12 @@ variable "domain" {
   default     = "home.lab"
 }
 
+variable "network_prefix" {
+  description = "IPv4 /24 prefix for the Docker network; choose one that does not overlap VPN routes"
+  type        = string
+  default     = "10.250.0"
+}
+
 variable "worker_count" {
   description = "Number of worker nodes"
   type        = number

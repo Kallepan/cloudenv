@@ -8,6 +8,11 @@ variable "network_name" {
   type        = string
 }
 
+variable "network_prefix" {
+  description = "IPv4 /24 prefix for the Docker network"
+  type        = string
+}
+
 variable "kubeconfig_path" {
   description = "Absolute path to write the kubeconfig file"
   type        = string
