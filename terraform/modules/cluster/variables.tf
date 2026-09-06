@@ -22,6 +22,11 @@ variable "kubeconfig_path" {
   type        = string
 }
 
+variable "automation_kubeconfig_path" {
+  description = "Absolute path to write the certificate-based kubeconfig for automation"
+  type        = string
+}
+
 variable "talosconfig_path" {
   description = "Absolute path to write the talosconfig file"
   type        = string
@@ -61,4 +66,34 @@ variable "root_ca" {
   description = "PEM root CA to inject into node trust stores via TrustedRootsConfig"
   type        = string
   default     = ""
+}
+
+variable "oidc_issuer_url" {
+  description = "OIDC issuer URL for Kubernetes API authentication"
+  type        = string
+}
+
+variable "oidc_host" {
+  description = "OIDC hostname resolved by Talos containers"
+  type        = string
+}
+variable "oidc_client_id" {
+  description = "OIDC client ID for Kubernetes API authentication"
+  type        = string
+}
+
+variable "oidc_username" {
+  description = "OIDC username to grant read-only Kubernetes access"
+  type        = string
+}
+
+variable "oidc_username_claim" {
+  description = "OIDC claim used as the Kubernetes username"
+  type        = string
+  default     = "preferred_username"
+}
+
+variable "oidc_host_ip" {
+  description = "HAProxy IP used by Talos containers to resolve the OIDC hostname"
+  type        = string
 }

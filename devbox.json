@@ -8,6 +8,7 @@
     "opentofu@latest",
     "fluxcd@latest",
     "talosctl@latest",
+    "kubelogin-oidc@latest",
     "just@latest",
     "mkcert@latest",
     "git@latest"

@@ -1,8 +1,9 @@
 locals {
-  kubeconfig_path     = abspath("${path.module}/../.configs/kubeconfig")
-  talosconfig_path    = abspath("${path.module}/../.configs/talosconfig")
-  kcp_kubeconfig_path = abspath("${path.module}/../.configs/kcp-kubeconfig")
-  data_dir            = abspath("${path.module}/../.data")
+  kubeconfig_path            = abspath("${path.module}/../.configs/kubeconfig")
+  automation_kubeconfig_path = abspath("${path.module}/../.configs/automation-kubeconfig")
+  talosconfig_path           = abspath("${path.module}/../.configs/talosconfig")
+  kcp_kubeconfig_path        = abspath("${path.module}/../.configs/kcp-kubeconfig")
+  data_dir                   = abspath("${path.module}/../.data")
 
   network_prefix = var.network_prefix
   gateway_ip     = "${local.network_prefix}.1"
@@ -141,13 +142,21 @@ module "openbao" {
 }
 
 module "keycloak" {
-  source         = "./modules/keycloak"
-  name           = "${var.cluster_name}-keycloak"
-  tag            = var.keycloak_image_tag
-  network_name   = module.network.name
-  ip_address     = local.keycloak_ip
-  hostname       = "keycloak.${var.domain}"
-  admin_password = var.keycloak_admin_password
+  source          = "./modules/keycloak"
+  name            = "${var.cluster_name}-keycloak"
+  tag             = var.keycloak_image_tag
+  network_name    = module.network.name
+  ip_address      = local.keycloak_ip
+  data_dir        = local.data_dir
+  hostname        = "keycloak.${var.domain}"
+  admin_password  = var.keycloak_admin_password
+  oidc_realm      = var.oidc_realm
+  oidc_client_id  = var.oidc_client_id
+  oidc_username   = var.oidc_username
+  oidc_password   = var.oidc_user_password
+  oidc_first_name = var.oidc_first_name
+  oidc_last_name  = var.oidc_last_name
+  oidc_user_email = var.oidc_user_email
 }
 
 module "kcp" {
@@ -179,29 +188,36 @@ module "seaweedfs" {
 module "cluster" {
   source = "./modules/cluster"
 
-  cluster_name        = var.cluster_name
-  network_name        = module.network.name
-  network_prefix      = local.network_prefix
-  worker_count        = var.worker_count
-  control_plane_count = var.control_plane_count
-  domain              = var.domain
-  kubeconfig_path     = local.kubeconfig_path
-  talosconfig_path    = local.talosconfig_path
-  talos_version       = var.talos_version
-  kubernetes_version  = var.kubernetes_version
-  root_ca             = module.certificates.root_ca
+  cluster_name               = var.cluster_name
+  network_name               = module.network.name
+  network_prefix             = local.network_prefix
+  worker_count               = var.worker_count
+  control_plane_count        = var.control_plane_count
+  domain                     = var.domain
+  kubeconfig_path            = local.kubeconfig_path
+  automation_kubeconfig_path = local.automation_kubeconfig_path
+  talosconfig_path           = local.talosconfig_path
+  talos_version              = var.talos_version
+  kubernetes_version         = var.kubernetes_version
+  root_ca                    = module.certificates.root_ca
+  oidc_issuer_url            = "https://keycloak.${var.domain}/realms/${var.oidc_realm}"
+  oidc_host                  = "keycloak.${var.domain}"
+  oidc_client_id             = var.oidc_client_id
+  oidc_username              = var.oidc_username
+  oidc_host_ip               = local.haproxy_ip
 }
 
 module "flux" {
   count  = var.enable_flux ? 1 : 0
   source = "./modules/flux"
 
-  kubeconfig_path = local.kubeconfig_path
-  kubeconfig_raw  = module.cluster.kubeconfig_raw
-  data_dir        = local.data_dir
-  git_url         = var.flux_git_url
-  git_branch      = var.flux_git_branch
-  git_path        = var.flux_git_path
+  kubeconfig_path    = module.cluster.automation_kubeconfig_path
+  kubeconfig_raw     = module.cluster.kubeconfig_raw
+  cluster_generation = module.cluster.cluster_generation
+  data_dir           = local.data_dir
+  git_url            = var.flux_git_url
+  git_branch         = var.flux_git_branch
+  git_path           = var.flux_git_path
 
   registry_domain = module.registry.domain
   manifests_path  = abspath("${path.module}/../manifests")

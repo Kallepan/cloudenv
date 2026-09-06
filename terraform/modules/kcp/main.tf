@@ -61,24 +61,7 @@ resource "docker_container" "kcp" {
       "--tls-cert-file=/etc/kcp/tls.crt",
       "--tls-private-key-file=/etc/kcp/tls.key",
     ],
-    var.oidc != null ? [
-      "--oidc-issuer-url=${var.oidc.issuer_url}",
-      "--oidc-client-id=${var.oidc.client_id}",
-      "--oidc-username-claim=${var.oidc.username_claim}",
-      "--oidc-groups-claim=${var.oidc.groups_claim}",
-    ] : [],
-    var.oidc != null && var.oidc.ca_cert != null ? [
-      "--oidc-ca-file=/etc/kcp/oidc-ca.crt",
-    ] : []
   )
-
-  dynamic "upload" {
-    for_each = var.oidc != null && var.oidc.ca_cert != null ? [var.oidc.ca_cert] : []
-    content {
-      content = upload.value
-      file    = "/etc/kcp/oidc-ca.crt"
-    }
-  }
 
   volumes {
     host_path      = local_file.tls_cert.filename

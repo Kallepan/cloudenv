@@ -63,14 +63,3 @@ variable "tag" {
   type        = string
 }
 
-variable "oidc" {
-  description = "Optional OIDC configuration for kcp authentication"
-  type = object({
-    issuer_url     = string
-    client_id      = string
-    username_claim = string
-    groups_claim   = string
-    ca_cert        = optional(string)
-  })
-  default = null
-}

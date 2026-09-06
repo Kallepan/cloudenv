@@ -36,6 +36,7 @@ locals {
 resource "terraform_data" "install" {
   triggers_replace = [
     var.kubeconfig_raw,
+    var.cluster_generation,
     var.git_url,
     var.git_branch,
     var.git_path,
@@ -74,6 +75,7 @@ resource "terraform_data" "sync" {
   depends_on = [terraform_data.install, local_file.sync_manifests, local_file.ca_cert]
 
   triggers_replace = [
+    var.cluster_generation,
     local.manifests_hash,
     var.oci_repo_name,
     var.oci_tag,

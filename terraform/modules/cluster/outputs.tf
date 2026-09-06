@@ -6,6 +6,10 @@ output "kubeconfig_path" {
   value = var.kubeconfig_path
 }
 
+output "automation_kubeconfig_path" {
+  value = var.automation_kubeconfig_path
+}
+
 output "talosconfig_path" {
   value = var.talosconfig_path
 }
@@ -13,6 +17,11 @@ output "talosconfig_path" {
 output "kubeconfig_raw" {
   value     = talos_cluster_kubeconfig.this.kubeconfig_raw
   sensitive = true
+}
+
+output "cluster_generation" {
+  description = "Changes whenever the cluster is recreated"
+  value       = terraform_data.cluster_parameters.id
 }
 
 output "controlplane_nodes" {
