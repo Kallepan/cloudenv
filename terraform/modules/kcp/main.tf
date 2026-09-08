@@ -24,9 +24,19 @@ resource "local_file" "tls_cert" {
 }
 
 resource "local_file" "tls_key" {
-  content         = var.tls_key
-  filename        = "${local.config_dir}/tls.key"
-  file_permission = "0600"
+  content  = var.tls_key
+  filename = "${local.config_dir}/tls.key"
+  # kcp runs as a non-root user and must read the bind-mounted key.
+  file_permission = "0644"
+}
+
+resource "terraform_data" "tls_permissions" {
+  input      = local_file.tls_key.content
+  depends_on = [local_file.tls_key]
+
+  provisioner "local-exec" {
+    command = "chmod 0644 '${local_file.tls_key.filename}'"
+  }
 }
 
 # Checking the remote digest (rather than trusting the locally cached tag)
@@ -44,12 +54,19 @@ resource "docker_image" "kcp" {
 # kcp terminates its own TLS — HAProxy passes it through by SNI rather than
 # terminating locally like openbao/keycloak.
 resource "docker_container" "kcp" {
-  depends_on = [local_file.tls_cert, local_file.tls_key, docker_image.kcp]
+  depends_on = [local_file.tls_cert, terraform_data.tls_permissions, docker_image.kcp]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.tls_permissions]
+  }
 
   name     = var.name
   hostname = var.name
   image    = docker_image.kcp.image_id
   restart  = "unless-stopped"
+
+  # Recreate kcp when the mounted TLS material changes.
+  env = ["TLS_MATERIAL_HASH=${md5(local.cert_bundle)}${md5(var.tls_key)}"]
 
   command = concat(
     [

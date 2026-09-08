@@ -23,6 +23,11 @@ locals {
   keycloak_ip  = local.service_ips["keycloak"]
   kcp_ip       = local.service_ips["kcp"]
   seaweedfs_ip = local.service_ips["seaweedfs"]
+  proxy_ca     = var.proxy_ca_file != "" ? file(var.proxy_ca_file) : ""
+  talos_ca_bundle_content = var.proxy_ca_file != "" ? join("\n", compact([
+    file(var.host_ca_bundle_file),
+    local.proxy_ca,
+  ])) : ""
 
   # Node IPs start at .10/.20, well clear of the service range above, so
   # growing service_names doesn't risk colliding with cluster nodes
@@ -38,6 +43,13 @@ locals {
       ipv4_address = "${local.network_prefix}.${20 + i}"
     }
   ]
+}
+
+resource "local_file" "talos_ca_bundle" {
+  count           = var.proxy_ca_file != "" ? 1 : 0
+  content         = local.talos_ca_bundle_content
+  filename        = "${local.data_dir}/talos-ca-bundle.crt"
+  file_permission = "0644"
 }
 
 module "network" {
@@ -188,6 +200,8 @@ module "seaweedfs" {
 module "cluster" {
   source = "./modules/cluster"
 
+  depends_on = [local_file.talos_ca_bundle]
+
   cluster_name               = var.cluster_name
   network_name               = module.network.name
   network_prefix             = local.network_prefix
@@ -200,6 +214,12 @@ module "cluster" {
   talos_version              = var.talos_version
   kubernetes_version         = var.kubernetes_version
   root_ca                    = module.certificates.root_ca
+  proxy_ca                   = local.proxy_ca
+  ca_bundle_path             = var.proxy_ca_file != "" ? local_file.talos_ca_bundle[0].filename : ""
+  ca_bundle_content          = local.talos_ca_bundle_content
+  http_proxy                 = var.http_proxy
+  https_proxy                = var.https_proxy
+  no_proxy                   = var.no_proxy
   oidc_issuer_url            = "https://keycloak.${var.domain}/realms/${var.oidc_realm}"
   oidc_host                  = "keycloak.${var.domain}"
   oidc_client_id             = var.oidc_client_id
@@ -223,4 +243,3 @@ module "flux" {
   manifests_path  = abspath("${path.module}/../manifests")
   root_ca         = module.certificates.root_ca
 }
-

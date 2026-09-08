@@ -21,6 +21,36 @@ variable "network_prefix" {
   }
 }
 
+variable "proxy_ca_file" {
+  description = "PEM CA certificate file for an HTTPS proxy that intercepts external TLS"
+  type        = string
+  default     = "/etc/ssl/certs/ca-certificates.crt"
+}
+
+variable "http_proxy" {
+  description = "HTTP proxy URL used by Talos for external image and OIDC access"
+  type        = string
+  default     = ""
+}
+
+variable "host_ca_bundle_file" {
+  description = "Host CA bundle to extend with the proxy CA for Talos containers"
+  type        = string
+  default     = "/etc/ssl/certs/ca-certificates.crt"
+}
+
+variable "https_proxy" {
+  description = "HTTPS proxy URL used by Talos for external image and OIDC access"
+  type        = string
+  default     = ""
+}
+
+variable "no_proxy" {
+  description = "Comma-separated hosts and networks that Talos must access directly"
+  type        = string
+  default     = "localhost,127.0.0.1,10.250.0.0/24,.home.lab"
+}
+
 variable "worker_count" {
   description = "Number of worker nodes"
   type        = number
