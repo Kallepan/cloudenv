@@ -11,7 +11,8 @@
     "kubelogin-oidc@latest",
     "just@latest",
     "mkcert@latest",
-    "git@latest"
+    "git@latest",
+    "jq@latest"
   ],
   "shell": {
     "init_hook": [

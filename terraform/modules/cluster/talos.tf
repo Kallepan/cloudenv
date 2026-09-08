@@ -27,15 +27,43 @@ locals {
   # Direct IP so Talos nodes can reach the API server without DNS during bootstrap
   cluster_endpoint = "https://${local.bootstrap_ip}:6443"
   talos_image      = "ghcr.io/siderolabs/talos:${var.talos_version}"
+  trusted_roots    = compact([var.root_ca, local.registry_ca])
+  # Talos registry TLS settings replace the default CA set for that
+  # registry. Use the host bundle (which contains the enterprise Zscaler
+  # chain) instead of only the standalone root certificate.
+  registry_ca = var.ca_bundle_content != "" ? var.ca_bundle_content : var.proxy_ca
 
-  root_ca_patch = var.root_ca != "" ? yamlencode({
+  root_ca_patch = length(local.trusted_roots) > 0 ? yamlencode({
     apiVersion   = "v1alpha1"
     kind         = "TrustedRootsConfig"
     name         = "local-root-ca"
-    certificates = var.root_ca
+    certificates = base64encode(join("\n", local.trusted_roots))
   }) : null
 
-  common_patches = compact([local.root_ca_patch])
+  proxy_patch = local.registry_ca != "" || var.http_proxy != "" || var.https_proxy != "" ? yamlencode({
+    machine = merge(
+      local.registry_ca != "" ? {
+        registries = {
+          config = {
+            for registry in ["ghcr.io", "registry.k8s.io"] : registry => {
+              tls = {
+                ca = base64encode(local.registry_ca)
+              }
+            }
+          }
+        }
+      } : {},
+      var.http_proxy != "" || var.https_proxy != "" ? {
+        env = merge(
+          var.http_proxy != "" ? { HTTP_PROXY = var.http_proxy } : {},
+          var.https_proxy != "" ? { HTTPS_PROXY = var.https_proxy } : {},
+          var.no_proxy != "" ? { NO_PROXY = var.no_proxy } : {}
+        )
+      } : {}
+    )
+  }) : null
+
+  common_patches = compact([local.root_ca_patch, local.proxy_patch])
 }
 
 # Changes to core cluster parameters start from a clean Talos cluster.
@@ -55,6 +83,11 @@ resource "terraform_data" "cluster_parameters" {
     var.talos_version,
     var.kubernetes_version,
     var.root_ca,
+    var.proxy_ca,
+    var.ca_bundle_content != "" ? sha256(var.ca_bundle_content) : "",
+    var.http_proxy,
+    var.https_proxy,
+    var.no_proxy,
   ]
 }
 
@@ -167,6 +200,16 @@ resource "docker_container" "node" {
   mounts {
     target = "/opt"
     type   = "volume"
+  }
+
+  dynamic "mounts" {
+    for_each = var.ca_bundle_path != "" ? [var.ca_bundle_path] : []
+    content {
+      source    = mounts.value
+      target    = "/etc/ssl/certs/ca-certificates.crt"
+      type      = "bind"
+      read_only = true
+    }
   }
 }
 

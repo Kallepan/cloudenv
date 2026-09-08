@@ -15,3 +15,5 @@ openbao_image_tag   = "latest"
 keycloak_image_tag  = "latest"
 kcp_image_tag       = "v0.32.3"
 seaweedfs_image_tag = "latest"
+
+proxy_ca_file = ""

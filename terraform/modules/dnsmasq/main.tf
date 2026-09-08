@@ -12,7 +12,7 @@ terraform {
 }
 
 resource "local_file" "conf" {
-  content  = templatefile("${path.module}/templates/dnsmasq.conf.tpl", {
+  content = templatefile("${path.module}/templates/dnsmasq.conf.tpl", {
     domain       = var.domain
     resolve_to   = var.resolve_to
     upstream_dns = var.upstream_dns

@@ -68,6 +68,42 @@ variable "root_ca" {
   default     = ""
 }
 
+variable "proxy_ca" {
+  description = "PEM CA certificate used by an HTTPS proxy for external registry TLS"
+  type        = string
+  default     = ""
+}
+
+variable "ca_bundle_path" {
+  description = "Host path to the combined CA bundle mounted into Talos containers"
+  type        = string
+  default     = ""
+}
+
+variable "ca_bundle_content" {
+  description = "Combined host and enterprise CA bundle used by Talos"
+  type        = string
+  default     = ""
+}
+
+variable "http_proxy" {
+  description = "HTTP proxy URL for Talos"
+  type        = string
+  default     = ""
+}
+
+variable "https_proxy" {
+  description = "HTTPS proxy URL for Talos"
+  type        = string
+  default     = ""
+}
+
+variable "no_proxy" {
+  description = "Comma-separated direct-connect hosts and networks for Talos"
+  type        = string
+  default     = ""
+}
+
 variable "oidc_issuer_url" {
   description = "OIDC issuer URL for Kubernetes API authentication"
   type        = string

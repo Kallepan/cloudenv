@@ -54,10 +54,21 @@ locals {
 
 # HAProxy expects cert + key concatenated in a single PEM file for "bind ... ssl crt"
 resource "local_file" "tls_bundle" {
-  count           = local.has_tls ? 1 : 0
-  content         = "${var.tls_cert}\n${var.tls_key}"
-  filename        = "${var.data_dir}/haproxy-${var.name}/certs/wildcard.pem"
-  file_permission = "0600"
+  count    = local.has_tls ? 1 : 0
+  content  = "${var.tls_cert}\n${var.tls_key}"
+  filename = "${var.data_dir}/haproxy-${var.name}/certs/wildcard.pem"
+  # HAProxy runs as a non-root user and must read the bind-mounted bundle.
+  file_permission = "0644"
+}
+
+resource "terraform_data" "tls_permissions" {
+  count      = local.has_tls ? 1 : 0
+  input      = local_file.tls_bundle[0].content
+  depends_on = [local_file.tls_bundle]
+
+  provisioner "local-exec" {
+    command = "chmod 0644 '${local_file.tls_bundle[0].filename}'"
+  }
 }
 
 # Checking the remote digest (rather than trusting the locally cached "lts"
@@ -73,7 +84,11 @@ resource "docker_image" "haproxy" {
 }
 
 resource "docker_container" "haproxy" {
-  depends_on = [local_file.cfg, local_file.tls_bundle, docker_image.haproxy]
+  depends_on = [local_file.cfg, terraform_data.tls_permissions, docker_image.haproxy]
+
+  lifecycle {
+    replace_triggered_by = [terraform_data.tls_permissions]
+  }
 
   name    = "${var.name}-haproxy"
   image   = docker_image.haproxy.image_id
@@ -81,7 +96,10 @@ resource "docker_container" "haproxy" {
 
   # Config changes don't trigger a container refresh on their own — force
   # recreation so haproxy picks up the new config/certs on every apply
-  env = ["CONFIG_HASH=${md5(local_file.cfg.content)}"]
+  env = [
+    "CONFIG_HASH=${md5(local_file.cfg.content)}",
+    "TLS_BUNDLE_HASH=${local.has_tls ? md5(local_file.tls_bundle[0].content) : "none"}",
+  ]
 
   networks_advanced {
     name         = var.network_name
